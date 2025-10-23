@@ -254,7 +254,7 @@
 </script>
 
 <svelte:head>
-	<title>f.den [{code}] {isLoadingTable ? '⏳' : ''}</title>
+	<title>ff [{code}] {isLoadingTable ? '⏳' : ''}</title>
 </svelte:head>
 <!-- <ModeWatcher track={false} defaultMode="dark" /> -->
 <!-- <Toaster /> -->

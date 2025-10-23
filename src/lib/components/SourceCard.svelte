@@ -60,7 +60,7 @@
 
 <button
 	disabled={sourceDescriptors.isLoggedIn === false}
-	class="focus-visible:ring-ring grid h-full content-stretch justify-center border transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-20
+	class="focus-visible:ring-ring grid h-full cursor-pointer content-stretch justify-center gap-y-1 border transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-20
   {!isChecked || isDataLoaded ? 'border-solid' : 'border-dashed'}
   {isChecked
 		? isError
@@ -71,7 +71,7 @@
 	onclick={handleSCClick}
 >
 	<span
-		class="row-span-2 {isChecked ? 'self-start' : 'self-end'} h-1 w-2 {scrapingTypeColors.get(
+		class=" {isChecked ? 'row-span-2 self-start' : 'self-end'} h-1 w-2 {scrapingTypeColors.get(
 			sourceDescriptors.scrapingType
 		)?.style.bg}"
 	></span>
@@ -122,7 +122,7 @@
 					class="col-span-1 mt-[0.08rem] inline-flex items-center gap-0 self-start text-[0.55rem] font-black text-secondary"
 					><Antenna class="mx-0.5 inline h-2 w-2" />{metaData?.status}</span
 				>
-				<span class="mb-2 w-11/12 text-start text-[0.55rem] font-medium text-secondary">
+				<span class="w-11/12 text-start text-[0.55rem] font-medium text-secondary">
 					{#if isDataLoaded}
 						<span class="perf-text inline-flex items-center"
 							><ArrowRightLeft class="mx-0.5 inline h-2 w-2" />{metaData.performanceTimings
@@ -162,7 +162,7 @@
 			? false
 			: true}
 	<button
-		class="row-span-2 flex size-full flex-col place-content-center items-center border-l border-primary bg-primary/10 hover:bg-primary/20 hover:text-primary disabled:bg-transparent disabled:bg-cover"
+		class="row-span-2 flex size-full cursor-pointer flex-col place-content-center items-center border-l border-primary bg-primary/10 hover:bg-primary/20 hover:text-primary disabled:bg-transparent disabled:bg-cover"
 		style={isDisabled
 			? `background-image: repeating-linear-gradient(-45deg, transparent 0 8px, var(--color-primary) 8px 16px);`
 			: ''}

@@ -56,7 +56,7 @@
 		style: null
 	}}
 	<button
-		class="relative min-h-7 w-full max-w-52 min-w-fit overflow-hidden border font-semibold capitalize shadow-[-5px_0_0_-3px,5px_0_0_-3px] shadow-black {style?.border} {style?.bg} bg-opacity-0 hover:bg-opacity-30 transition-colors hover:text-neutral-50"
+		class="relative min-h-7 w-full max-w-52 min-w-fit cursor-pointer overflow-hidden border font-semibold capitalize shadow-[-5px_0_0_-3px,5px_0_0_-3px] shadow-black {style?.border} {style?.bg} bg-opacity-0 hover:bg-opacity-30 transition-colors hover:text-neutral-50"
 		onclick={() => {
 			const { nEnabled, maxEnabled } = nEnabledSourceCardsByType.get(scrapingType) ?? {
 				nEnabled: NaN,

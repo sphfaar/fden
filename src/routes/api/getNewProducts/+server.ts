@@ -1,0 +1,40 @@
+import type { RequestHandler } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
+import { sourcesGetters } from '$lib/product_sources';
+
+export const POST: RequestHandler = async ({ request, locals }) => {
+	interface RequestData {
+		sourceID: string;
+		code: string;
+	}
+	const { sourceID, code }: RequestData = await request.json();
+	const queryRegex = /^[\w.\-/]{3,32}$/;
+	if (!queryRegex.test(code)) {
+		error(400, 'Bad Product Code Request');
+	}
+
+	const sourceOfData = sourcesGetters[sourceID];
+
+	const maybeSessionToken: string | undefined = locals?.srcSessions?.find(
+		(session) => session.name === sourceID
+	)?.value;
+
+	const productsData: ProductsData | undefined | null = await sourceOfData
+		.getProducts(code, { showPerfReqProxyToSource: true }, 1, maybeSessionToken)
+		.then(async (prodsData) => ({
+			...prodsData,
+			products: await Promise.all(
+				prodsData.products.map(async (product) => ({
+					...product,
+					thumbnails: (await product.thumbnails) ?? undefined
+				}))
+			)
+		}));
+	if (!productsData) error(500, 'error fetching products getting products on getNewProducts API');
+
+	return json(productsData);
+};
+
+export const fallback: RequestHandler = async ({ request }) => {
+	return json(`I caught your bad ${request.method} request! 🧐`);
+};

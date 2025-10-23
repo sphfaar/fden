@@ -1,95 +1,25 @@
 <script lang="ts">
-	let { products, maxRows }: { products: ProductOfTable[]; maxRows: number } = $props();
+	import { Funnel } from '@lucide/svelte';
 
-	// let pagination = $state<PaginationState>({ pageIndex: 0, pageSize: maxRows });
-	// let sorting = $state<SortingState>([]);
-	// let globalFilter = $state<ColumnFiltersState>([]);
-	// let columnVisibility = $state<VisibilityState>({});
+	let { products }: { products: ProductOfTable[] } = $props();
 
-	// const table = createSvelteTable({
-	// 	get data() {
-	// 		return products;
-	// 	},
-	// 	columns,
-	// 	state: {
-	// 		get pagination() {
-	// 			return pagination;
-	// 		},
-	// 		get sorting() {
-	// 			return sorting;
-	// 		},
-	// 		get globalFilter() {
-	// 			return globalFilter;
-	// 		},
-	// 		get columnVisibility() {
-	// 			return columnVisibility;
-	// 		}
-	// 	},
-	//
-	// 	getCoreRowModel: getCoreRowModel(),
-	// 	getPaginationRowModel: getPaginationRowModel(),
-	// 	getSortedRowModel: getSortedRowModel(),
-	// 	getFilteredRowModel: getFilteredRowModel(),
-	// 	onPaginationChange: (updater) => {
-	// 		if (typeof updater === 'function') {
-	// 			pagination = updater(pagination);
-	// 		} else {
-	// 			pagination = updater;
-	// 		}
-	// 	},
-	// 	onSortingChange: (updater) => {
-	// 		if (typeof updater === 'function') {
-	// 			sorting = updater(sorting);
-	// 		} else {
-	// 			sorting = updater;
-	// 		}
-	// 	},
-	// 	onGlobalFilterChange: (updater) => {
-	// 		if (typeof updater === 'function') {
-	// 			globalFilter = updater(globalFilter);
-	// 		} else {
-	// 			globalFilter = updater;
-	// 		}
-	// 	},
-	// 	onColumnVisibilityChange: (updater) => {
-	// 		if (typeof updater === 'function') {
-	// 			columnVisibility = updater(columnVisibility);
-	// 		} else {
-	// 			columnVisibility = updater;
-	// 		}
-	// 	}
-	// });
+	let searchFilterVal = $state('');
+	let filter: string | null = $derived(searchFilterVal.length > 0 ? searchFilterVal.trim() : null);
 
-	// const visibleColumns = table
-	// 	.getFlatHeaders()
-	// 	.map((cell) => cell.id)
-	// 	.filter((cell) => cell !== 'actions');
+	let productsFiltered = $derived<ProductOfTable[]>(
+		filter
+			? products.filter((p) => p.crossCode.includes(filter) || p.manufacturerCode.includes(filter))
+			: products
+	);
 </script>
 
-<div class="flex items-stretch gap-4 py-4">
-	<input class="max-w-sm" placeholder="Filter filters..." value="" />
-	<!-- <Separator orientation="vertical" /> -->
-	<!-- <SheetExport productsOfTable={products} {visibleColumns} /> -->
-	<!-- <DropdownMenu.Root> -->
-	<!-- 	<DropdownMenu.Trigger> -->
-	<!-- 		{#snippet child({ props })} -->
-	<!-- 			<button {...props} variant="outline" class="ml-auto">Columns</button> -->
-	<!-- 		{/snippet} -->
-	<!-- 	</DropdownMenu.Trigger> -->
-	<!-- 	<DropdownMenu.Content align="end"> -->
-	<!-- 		{#each table.getAllColumns().filter((col) => col.getCanHide()) as column (column.id)} -->
-	<!-- 			<DropdownMenu.CheckboxItem -->
-	<!-- 				class="capitalize" -->
-	<!-- 				checked={column.getIsVisible()} -->
-	<!-- 				onCheckedChange={(value) => column.toggleVisibility(!!value)} -->
-	<!-- 			> -->
-	<!-- 				{column.id} -->
-	<!-- 			</DropdownMenu.CheckboxItem> -->
-	<!-- 		{/each} -->
-	<!-- 	</DropdownMenu.Content> -->
-	<!-- </DropdownMenu.Root> -->
+<div class="flex w-full items-center gap-2 border border-primary/50 px-2 py-1">
+	<Funnel size={16} />
+	<input class="w-full bg-primary/10" bind:value={searchFilterVal} />
+	<samp class="font-bold">{productsFiltered.length}/{products.length}</samp>
 </div>
-<table class="w-full caption-bottom text-sm">
+
+<table class="mb-32 w-full caption-bottom text-sm">
 	<thead>
 		<tr
 			class="border-accent-foreground/30 data-[state=selected]:bg-muted border-b transition-colors hover:bg-background"
@@ -112,17 +42,36 @@
 			>
 		</tr>
 	</thead>
+	{#snippet filterHighlight(strings: string[], filter: string)}
+		{#each strings as str, i (i)}
+			{#if i < strings.length - 1}
+				{str}<span class="text-secondary text-shadow-secondary text-shadow-xs">{filter}</span>
+			{:else}
+				{str}
+			{/if}
+		{/each}
+	{/snippet}
 	<tbody>
-		{#each products as product, i (i)}
+		{#each productsFiltered as product, i (i)}
+			{@const manCodeSplitted = filter ? product.manufacturerCode.split(filter) : null}
+			{@const crossCodeSplitted = filter ? product.crossCode.split(filter) : null}
 			<tr class=" {i % 2 === 0 ? 'bg-secondary/5' : ''} data-[state=selected]:bg-muted">
 				<td class="p-4 py-2 align-middle [&:has([role=checkbox])]:pr-0">
 					<img class="h-6 pl-4" src={product.source.image} alt={product.source.name} />
 				</td>
 				<td class="p-4 py-2 align-middle [&:has([role=checkbox])]:pr-0">
-					{product.manufacturerCode}
+					{#if manCodeSplitted && filter}
+						{@render filterHighlight(manCodeSplitted, filter)}
+					{:else}
+						{product.manufacturerCode}
+					{/if}
 				</td>
 				<td class="p-4 py-2 align-middle [&:has([role=checkbox])]:pr-0">
-					{product.crossCode}
+					{#if crossCodeSplitted && filter}
+						{@render filterHighlight(crossCodeSplitted, filter)}
+					{:else}
+						{product.crossCode}
+					{/if}
 				</td>
 				<td class="p-4 py-2 align-middle [&:has([role=checkbox])]:pr-0">
 					{product.manufacturerName}

@@ -79,8 +79,6 @@
 		)
 	);
 
-	let nTotalResults = $derived(productsOfTable.length > 0 ? productsOfTable.length : null);
-
 	// let tableWorker: Worker | null = null;
 
 	function isSourceCardChecked(sourceID: string) {
@@ -268,7 +266,7 @@
 </nav>
 <main class="mx-auto w-full">
 	<form method="GET" class="mb-4 flex flex-col content-center justify-around pb-5">
-		<fieldset class="flex w-full gap-2 border-b border-primary/50 bg-primary/5 px-8 py-7 lg:px-12">
+		<fieldset class="flex w-full gap-2 border-b border-primary/50 px-8 py-7 lg:px-12">
 			<input
 				name="q"
 				bind:value={code}
@@ -279,7 +277,7 @@
 				pattern={`[\\w.\\-\\/]{3,32}`}
 				oninput={checkOutdatedSourceData}
 				required
-				class="text-md col-span-3 w-full border border-primary px-2 placeholder-primary/50"
+				class="text-md col-span-3 w-full border px-2 text-lg font-bold placeholder-primary/50"
 			/>
 		</fieldset>
 
@@ -295,12 +293,8 @@
 					class={[
 						'flex grow flex-col gap-px bg-background transition-shadow',
 						disabledSC.isMouseOverScrapingType
-							? [
-									scrapingTypeColors.get(disabledSC.sourceDescriptors.scrapingType)?.style.shadow
-										.bottom,
-									scrapingTypeColors.get(disabledSC.sourceDescriptors.scrapingType)?.style.bg,
-									'bg-opacity-5'
-								]
+							? scrapingTypeColors.get(disabledSC.sourceDescriptors.scrapingType)?.style.shadow
+									.bottom
 							: 'bg-opacity-100'
 					]}
 					in:receive={{ key: disabledSC.sourceDescriptors.sourceID }}
@@ -330,24 +324,18 @@
 		</fieldset>
 		<fieldset
 			disabled={!codeRgx.test(code)}
-			class="300/40 flex basis-auto flex-wrap content-center justify-center gap-4 border-b px-8 pt-8 pb-10 shadow-[0_-3px_0_0] shadow-primary/5 lg:px-12"
+			class="flex basis-auto flex-wrap content-center justify-center gap-4 border-b border-secondary/20 px-8 pt-8 pb-10 shadow-[0_-3px_0_0] shadow-primary/5 lg:px-12"
 		>
 			{#each enabledSourceCards.filter((s) => s.isChecked) as enabledSC (enabledSC.sourceDescriptors.sourceID)}
 				{@const metadataPromise = sourceCardsMetadataPromises.get(
 					enabledSC.sourceDescriptors.sourceID
 				)}
-				<label
+				<div
 					class={[
-						'flex h-fit w-fit flex-col gap-px transition-shadow',
+						'flex h-16 w-fit flex-col gap-px transition-shadow',
 						enabledSC.isMouseOverScrapingType
-							? [
-									scrapingTypeColors.get(enabledSC.sourceDescriptors.scrapingType)?.style.shadow
-										.top,
-
-									scrapingTypeColors.get(enabledSC.sourceDescriptors.scrapingType)?.style.bg,
-									'bg-opacity-5'
-								]
-							: 'bg-opacity-100'
+							? scrapingTypeColors.get(enabledSC.sourceDescriptors.scrapingType)?.style.shadow.top
+							: 'bg-background'
 					]}
 					in:receive={{ key: enabledSC.sourceDescriptors.sourceID }}
 					out:send={{ key: enabledSC.sourceDescriptors.sourceID }}
@@ -363,7 +351,7 @@
 						bind:isDataLoaded={enabledSC.isDataLoaded}
 						lastCodeQuery={enabledSC.lastCodeQuery}
 					/>
-				</label>
+				</div>
 			{/each}
 		</fieldset>
 	</form>
@@ -374,16 +362,10 @@
 		{/if}
 
 		{#if productsOfTable.length > 0}
-			<p class="mb-2">
-				Total filters: <b>{nTotalResults}</b>
-				{#if isLoadingMoreProductsOnTable}
-					loading
-				{/if}
-			</p>
-			<DataTable
-				products={productsOfTable}
-				maxRows={parseInt(page.url.searchParams.get('maxRows') ?? '255')}
-			/>
+			{#if isLoadingMoreProductsOnTable}
+				<p class="mb-2">loading</p>
+			{/if}
+			<DataTable products={productsOfTable} />
 		{/if}
 	</section>
 </main>

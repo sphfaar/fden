@@ -115,14 +115,14 @@
 	>
 {/snippet}
 
-<small class="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary/75 px-8 font-black text-black"
+<small class="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary/75 px-8 text-black"
 	>{srcConsensusDescription.short}</small
 >
 <small class="absolute -bottom-5 left-1/2 -translate-x-1/2 text-lime-300/80"
 	>{srcConsensusDescription.long}</small
 >
 <span
-	class="pointer-events-none my-1.5 box-content w-full min-w-4 bg-primary/20 pt-1.5 pr-4 text-right text-xs font-extrabold text-nowrap text-primary"
+	class="pointer-events-none my-1.5 box-content w-full min-w-4 bg-primary/20 pt-1.5 pr-4 text-right text-xs text-nowrap text-primary"
 	>data format</span
 >
 <div

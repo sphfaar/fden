@@ -1,70 +1,126 @@
 import type { GetNextProducts, GetProducts } from '../types';
 import type ResponseSchema from './ResponseSchema';
-import { getJsonToProducts } from '../getJsonToProductsData.server';
+// import { getJsonToProducts } from '../getJsonToProductsData.server';
+import { wrapper } from 'axios-cookiejar-support';
+import { CookieJar } from 'tough-cookie';
+import axios from 'axios';
+import { getProductThumbnails } from '../getProductsThumbnails.server';
 
-export const getProducts: GetProducts = async (code: string, config, page = 1) => {
+// NOTE: Helper function to add a delay (ms) between requests to avoid rate limiting, which can cause 403 after multiple queries in a short time.
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export const getProducts: GetProducts = async (
+	code: string,
+	config,
+	page = 1,
+	opts = { retries: 2 }
+) => {
+	// NOTE: Added retries param (default 2) to handle intermittent 403 by refreshing cookies.
 	const formattedCode = code.replaceAll(/[^\w]/g, '').toUpperCase();
-	const axiosReqConfig = {
-		method: 'POST',
-		url: 'https://www.baldwinfilters.com/content/baldwin-filters/us/en/cross-reference-result-page.data.json',
-		headers: {
-			Host: 'www.baldwinfilters.com',
-			'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:134.0) Gecko/20100101 Firefox/134.0',
-			Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-			'Accept-Language': 'en,en-US;q=0.7,it;q=0.3',
-			'Accept-Encoding': 'gzip, deflate, br, zstd',
-			'Content-Type': 'application/json',
-			Origin: 'null',
-			Connection: 'keep-alive',
-			'Upgrade-Insecure-Requests': '1',
-			'Sec-Fetch-Dest': 'document',
-			'Sec-Fetch-Mode': 'navigate',
-			'Sec-Fetch-Site': 'cross-site',
-			Priority: 'u=0, i',
-			TE: 'trailers'
-		},
-		data: {
-			url: `https://api.parker.com/prod/baldwinsearch/BaldwinECatalog/select?fq=coreName_s:BaldwinCrossRefData&=&wt=json&indent=true&group=true&group.offset=0&group.query=compPartId_s:(%22${formattedCode}%22%20OR%20${formattedCode}*%20OR%20*${formattedCode}*)&q=compPartId_s:(%22${formattedCode}%22%20OR%20${formattedCode}*%20OR%20*${formattedCode}*%20)%5E1%20OR%20partNumber_s:(%22${formattedCode}%22%20OR%20${formattedCode}*%20)%5E2&group.limit=25`,
-			ocpApimSubscriptionKey: 'a61a00f528344ce29179af297ccbbea8',
-			partNumber: [code],
-			type: 'crossRef'
-		}
-	};
+	// NOTE: Make Referer dynamic to match the code/query, as hardcoded values can cause mismatches leading to 403 or invalid sessions.
+	const refererUrl = `https://www.baldwinfilters.com/us/en/cross-reference-result-page.html?partNo1=${encodeURIComponent(code)}`;
+
+	// NOTE: Create a cookie jar to persist session cookies across requests, preventing 403 errors from missing Akamai bot management cookies (e.g., ak_bmsc).
+	const jar = new CookieJar();
+	const client = wrapper(
+		axios.create({
+			baseURL: 'https://www.baldwinfilters.com',
+			jar,
+			withCredentials: true, // NOTE: Enable credentials to send/receive cookies automatically.
+			headers: {
+				Accept: '*/*',
+				'Accept-Encoding': 'gzip, deflate, br, zstd',
+				'Accept-Language': 'en-US,en;q=0.5',
+				'Cache-Control': 'no-cache',
+				Connection: 'keep-alive',
+				'Content-Type': 'application/json',
+				Origin: 'https://www.baldwinfilters.com',
+				Pragma: 'no-cache',
+				Priority: 'u=4',
+				Referer: refererUrl, // NOTE: Use dynamic Referer for all requests to avoid security checks failing.
+				'Sec-Fetch-Dest': 'empty',
+				'Sec-Fetch-Mode': 'cors',
+				'Sec-Fetch-Site': 'same-origin',
+				'Sec-GPC': '1',
+				TE: 'trailers',
+				'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:144.0) Gecko/20100101 Firefox/144.0'
+			},
+			// NOTE: If running in Cloudflare Workers, avoid timeouts; set reasonable limits.
+			timeout: 10000 // 10s timeout to prevent hanging on slow responses.
+		})
+	);
 
 	try {
-		return getJsonToProducts<ResponseSchema>(
-			'baldwin',
-			axiosReqConfig,
+		// NOTE: Add a small delay before requests to simulate human behavior and avoid rate limits (e.g., 403 after "some time" from too many fast queries).
+		await delay(500); // Adjust based on testing; e.g., 1000ms for production.
+
+		// NOTE: Perform an initial GET to the Referer page to establish a session and fetch required cookies (e.g., ApplicationGatewayAffinity, ak_bmsc). This mimics browser behavior and bypasses bot detection.
+		// If Akamai requires JS (rarely in initial GET), this may fail—consider a headless browser like Puppeteer (but not in Cloudflare Workers; use external service).
+		await client.get(refererUrl.replace('https://www.baldwinfilters.com', '')); // Relative path for baseURL.
+
+		// NOTE: Now perform the POST with the same client; cookies will be included automatically, reducing 403 risks.
+		const response = await client.post(
+			'/content/baldwin-filters/us/en/cross-reference-result-page.data.json',
 			{
-				rowsIterator: (resData) => {
-					const products: Product[] = [];
-					for (
-						let i = 0;
-						i <
-						resData.grouped[
-							`compPartId_s:("${formattedCode}" OR ${formattedCode}* OR *${formattedCode}*)`
-						].doclist.docs.length;
-						i++
-					) {
-						const row =
-							resData.grouped[
-								`compPartId_s:("${formattedCode}" OR ${formattedCode}* OR *${formattedCode}*)`
-							].doclist.docs[i];
-						products.push({
-							manufacturer: row.manufacturer_s,
-							manufacturer_code: row.partNumber_s,
-							source_reference_code: row.code_si,
-							detailsUrl: `https://ph.baldwinfilters.com/baldwin/en/${row.psURLKeyword_si}/${row.urlKeyword_si}`
-						});
-					}
-					return products;
-				}
-			},
-			config,
-			page
+				url: `https://api.parker.com/prod/baldwinsearch/BaldwinECatalog/select?fq=coreName_s:BaldwinCrossRefData&=&wt=json&indent=true&group=true&group.offset=0&group.query=compPartId_s:(%22${formattedCode}%22%20OR%20${formattedCode}*%20OR%20*${formattedCode}*)&q=compPartId_s:(%22${formattedCode}%22%20OR%20${formattedCode}*%20OR%20*${formattedCode}*%20)%5E1%20OR%20partNumber_s:(%22${formattedCode}%22%20OR%20${formattedCode}*%20)%5E2&group.limit=-1`,
+				ocpApimSubscriptionKey: 'a61a00f528344ce29179af297ccbbea8',
+				partNumber: [code],
+				type: 'crossRef'
+			}
 		);
+
+		// NOTE: Process the response data as before, but now with reliable fetching.
+		const resData = response.data as ResponseSchema;
+		const products: Product[] = [];
+		const groupKey = `compPartId_s:("${formattedCode}" OR ${formattedCode}* OR *${formattedCode}*)`;
+		const docs = resData.grouped?.[groupKey]?.doclist?.docs ?? []; // NOTE: Safely access nested properties to avoid undefined errors if response structure varies unexpectedly.
+		for (
+			let i = 0;
+			i <
+			resData.grouped[
+				`compPartId_s:("${formattedCode}" OR ${formattedCode}* OR *${formattedCode}*)`
+			].doclist.docs.length;
+			i++
+		) {
+			const row = docs[i];
+			const urlKeyword = row.urlKeyword_si; // NOTE: Type as string | undefined implicitly.
+			const urlKeyword2 = row.psURLKeyword_si;
+			const detailsUrl = urlKeyword
+				? `https://ph.baldwinfilters.com/baldwin/en/${urlKeyword}`
+				: undefined;
+			const thumbnailUrl = urlKeyword2
+				? `https://www.parker.com/content/dam/Parker-com/Online/Product-Images/Engine-Mobile-Aftermarket-Division/zoom_1000x1000/${convertProductString(urlKeyword2)}_${row.code_si}_zm.jpg`
+				: undefined;
+			products.push({
+				manufacturer: row.manufacturer_s, // NOTE: Assume required; add similar guards if errors occur here in future.
+				manufacturer_code: row.partNumber_s,
+				source_reference_code: row.code_si,
+				detailsUrl,
+				thumbnails: thumbnailUrl ? getProductThumbnails([thumbnailUrl]) : undefined
+			});
+		}
+
+		return {
+			meta: {
+				status: response.status,
+				currentItemsDisplayed: products.length,
+				totalItems:
+					resData.grouped[
+						`compPartId_s:("${formattedCode}" OR ${formattedCode}* OR *${formattedCode}*)`
+					].doclist.numFound, // NOTE: Assuming this field exists for total; adjust if needed based on actual response.
+				maxItemsPagination: null, // From group.limit.
+				page
+			},
+			products
+		};
 	} catch (err) {
 		console.error('baldwin error', err);
+		// NOTE: On 403, retry by recursing (refresh cookies via new GET). This handles expiration "after some time". Limit retries to avoid infinite loops.
+		if (opts.retries && opts.retries > 0) {
+			console.warn(`possible 403 detected; retrying (${opts.retries} left)...`);
+			await delay(2000); // Longer delay on retry to cool off.
+			return getProducts(code, config, page, { retries: opts.retries - 1 });
+		}
 		return {
 			meta: {
 				status: 500,
@@ -79,3 +135,35 @@ export const getProducts: GetProducts = async (code: string, config, page = 1) =
 };
 
 export const getNextProducts: GetNextProducts = () => null;
+
+// Function to convert the input string to the format of images urls
+function convertProductString(input?: string): string {
+	if (!input) {
+		console.warn('convertProductString called with missing/empty input; returning empty string'); // NOTE: Log for debugging; avoids silent failures.
+		return '';
+	}
+	// NOTE: Split the input by '/' and skip the first segment ('product-list' or 'product').
+	const segments = input.split('/').slice(1);
+
+	// NOTE: Basic validation: Ensure there is at least one relevant segment (handles new format with 1 segment or old with 2).
+	if (segments.length < 1) {
+		throw new Error('Invalid input format: Expected at least one segment after the prefix');
+	}
+
+	const part1 = segments[0];
+	// NOTE: Process part1: Split by '-', capitalize each word, and join with '_'.
+	const processedPart1 = part1
+		.split('-')
+		.map((word) => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize first letter of each word
+		.join('_');
+
+	let processedPart2 = '';
+	if (segments.length > 1) {
+		const part2 = segments[1];
+		// NOTE: Process part2 (if present in old format): Uppercase the entire string, as per current code (e.g., "p203" -> "P203").
+		processedPart2 = '_' + part2.toUpperCase();
+	}
+
+	// NOTE: Join the processed parts (appends nothing if no part2 in new format).
+	return processedPart1 + processedPart2;
+}

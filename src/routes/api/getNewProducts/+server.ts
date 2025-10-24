@@ -19,17 +19,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		(session) => session.name === sourceID
 	)?.value;
 
-	const productsData: ProductsData | undefined | null = await sourceOfData
-		.getProducts(code, { showPerfReqProxyToSource: true }, 1, maybeSessionToken)
-		.then(async (prodsData) => ({
-			...prodsData,
-			products: await Promise.all(
-				prodsData.products.map(async (product) => ({
-					...product,
-					thumbnails: (await product.thumbnails) ?? undefined
-				}))
-			)
-		}));
+	const productsData: ProductsData | undefined | null = await sourceOfData.getProducts(
+		code,
+		{ showPerfReqProxyToSource: true },
+		1,
+		maybeSessionToken
+	);
 	if (!productsData) error(500, 'error fetching products getting products on getNewProducts API');
 
 	return json(productsData);

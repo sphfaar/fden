@@ -79,6 +79,7 @@
 	<img
 		src={sourceDescriptors.banner ?? sourceDescriptors.logo}
 		alt={sourceDescriptors.name}
+		loading="lazy"
 		class={sourceDescriptors.banner
 			? isChecked
 				? 'col-span-2 mt-2 h-6'
@@ -125,7 +126,7 @@
 				<span class="w-11/12 text-start text-[0.55rem] font-medium text-secondary">
 					{#if isDataLoaded}
 						<span class="perf-text inline-flex items-center"
-							><ArrowRightLeft class="mx-0.5 inline h-2 w-2" />{metaData.performanceTimings
+							><ArrowRightLeft class="mx-0.5 inline h-2 w-2" />{metaData?.performanceTimings
 								?.proxyToSource} ms</span
 						>
 					{:else if lastCodeQuery}
@@ -133,10 +134,12 @@
 					{/if}
 				</span>
 
-				<samp class="mb-2 flex items-center pr-2 text-xs text-secondary/70">
-					<File class="mr-1 h-3 w-3" />
-					{metaData?.page}{metaData?.pages ? '/' + metaData.pages : ''}
-				</samp>
+				{#if metaData?.page && metaData?.pages}
+					<samp class="mb-2 flex items-center pr-2 text-xs text-secondary/70">
+						<File class="mr-1 h-3 w-3" />
+						{metaData.page}{metaData.pages ? '/' + metaData.pages : ''}
+					</samp>
+				{/if}
 			{:catch error}
 				<p class="col-span-4 row-span-3 h-7 overflow-auto text-left text-xs text-red-400">
 					{error.message}
@@ -151,12 +154,12 @@
 <!-- button to load more items snipped because sevelte doesn't like buttons inside buttons (for hydratation errors) -->
 {#snippet buttonLoadMore(metaData: MetaData)}
 	{@const isDisabled =
-		(typeof metaData?.totalItems !== 'string' &&
+		(metaData?.totalItems &&
+			typeof metaData.totalItems !== 'string' &&
 			metaData?.maxItemsPagination &&
-			metaData?.totalItems &&
 			metaData?.currentItemsDisplayed < metaData?.totalItems &&
 			isDataLoaded) ||
-		(metaData.pages && metaData.page < metaData.pages) ||
+		(metaData?.pages && metaData.page < metaData.pages) ||
 		typeof metaData?.totalItems === 'string' ||
 		!lastCodeQuery
 			? false
@@ -193,7 +196,7 @@
 			{:else}
 				{metaData?.maxItemsPagination}
 			{/if}
-		{:else if typeof metaData.totalItems === 'string' || (metaData.pages && metaData.page < metaData.pages)}
+		{:else if typeof metaData?.totalItems === 'string' || (metaData?.pages && metaData.page < metaData.pages)}
 			<ListPlus size={16} />
 			more
 		{:else}

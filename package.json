@@ -30,18 +30,20 @@
 		"prettier": "^3.6.2",
 		"prettier-plugin-svelte": "^3.4.0",
 		"prettier-plugin-tailwindcss": "^0.7.1",
-		"svelte": "^5.41.2",
+		"svelte": "^5.41.4",
 		"svelte-check": "^4.3.3",
 		"tailwindcss": "^4.1.16",
 		"typescript": "^5.9.3",
 		"typescript-eslint": "^8.46.2",
 		"vite": "^7.1.12",
-		"wrangler": "^4.44.0"
+		"wrangler": "^4.45.0"
 	},
 	"dependencies": {
-		"@lucide/svelte": "^0.546.0",
+		"@lucide/svelte": "^0.547.0",
 		"@tanstack/table-core": "^8.21.3",
 		"axios": "^1.12.2",
-		"linkedom": "^0.18.12"
+		"axios-cookiejar-support": "^6.0.4",
+		"linkedom": "^0.18.12",
+		"tough-cookie": "^6.0.0"
 	}
 }

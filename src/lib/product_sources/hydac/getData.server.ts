@@ -1,17 +1,29 @@
 import { getJsonToProducts } from '../getJsonToProductsData.server';
+import { getProductThumbnails } from '../getProductsThumbnails.server';
 import type { GetNextProducts, GetProducts } from '../types';
 import type ResponseSchema from './ResponseSchema';
 
 export const getProducts: GetProducts = async (code: string, config) => {
 	const axiosReqConfig = {
 		method: 'GET',
-		url: 'https://www.hydac.com/it-it/tool-online/betterfit/betterfitSearch',
-		params: {
-			query: code
-		},
+		url: 'https://www.hydac.com/en/e-tools/betterfit/betterfitSearch/',
+		params: { query: code },
 		headers: {
-			'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0',
-			DNT: '1'
+			Accept: '*/*',
+			'Accept-Encoding': 'gzip, deflate, br, zstd',
+			'Accept-Language': 'en-US,en;q=0.5',
+			'Cache-Control': 'no-cache',
+			Connection: 'keep-alive',
+			Host: 'www.hydac.com',
+			Pragma: 'no-cache',
+			Priority: 'u=0',
+			Referer: 'https://www.hydac.com/en/e-tools/betterfit/',
+			'Sec-Fetch-Dest': 'empty',
+			'Sec-Fetch-Mode': 'cors',
+			'Sec-Fetch-Site': 'same-origin',
+			'Sec-GPC': '1',
+			TE: 'trailers',
+			'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:144.0) Gecko/20100101 Firefox/144.0'
 		}
 	};
 	try {
@@ -26,7 +38,8 @@ export const getProducts: GetProducts = async (code: string, config) => {
 						products.push({
 							manufacturer: row.competitor.manufacturer.title,
 							manufacturer_code: row.competitor.title,
-							source_reference_code: row.hydac.title
+							source_reference_code: row.hydac.title,
+							thumbnails: getProductThumbnails([row.hydac.image.src])
 						});
 					}
 					return products;
@@ -34,52 +47,6 @@ export const getProducts: GetProducts = async (code: string, config) => {
 			},
 			config
 		);
-		// const response = await fetch(
-		// 	`https://www.hydac.com/it-it/tool-online/betterfit/betterfitSearch/?query=${codeEncoded}`,
-		// 	{
-		// 		method: 'GET',
-		// 		headers: {
-		// 			'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0',
-		// 			DNT: '1'
-		// 		}
-		// 	}
-		// );
-		//
-		// if (!response.ok) {
-		// 	return {
-		// 		meta: {
-		// 			status: response.status,
-		// 			currentItemsDisplayed: 0,
-		// 			totalItems: 0,
-		// 			maxItemsPagination: 0,
-		// 			page: 0
-		// 		},
-		// 		products: []
-		// 	};
-		// }
-		//
-		// const responseData: ResponseSchema = await response.json();
-		// const products: Product[] = [];
-		//
-		// for (let i = 0; i < responseData.relation.length; i++) {
-		// 	const row = responseData.relation[i];
-		// 	products.push({
-		// 		manufacturer: row.competitor.manufacturer.title,
-		// 		manufacturer_code: row.competitor.title,
-		// 		source_reference_code: row.hydac.title
-		// 	});
-		// }
-		//
-		// return {
-		// 	meta: {
-		// 		status: response.status,
-		// 		currentItemsDisplayed: responseData.resultCount,
-		// 		totalItems: responseData.resultCount,
-		// 		maxItemsPagination: null,
-		// 		page: 1
-		// 	},
-		// 	products: products
-		// };
 	} catch (err) {
 		console.error('Hydac error', err);
 		return {

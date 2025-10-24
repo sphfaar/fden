@@ -189,7 +189,7 @@
 		const newPot: ProductOfTable[] = [];
 		prodsFromSrcPromises.forEach((prodsData, srcDescs) => {
 			const newProdsData = prodsFromSrcFulfilled.get(prodsData)?.productsData;
-			if (!srcDescs || !isSourceCardChecked(srcDescs.sourceID) || !newProdsData) return;
+			if (!srcDescs || !isSourceCardChecked(srcDescs.sourceID) || !newProdsData?.products) return;
 			newPot.push(
 				...newProdsData.products.map((product) => {
 					return {

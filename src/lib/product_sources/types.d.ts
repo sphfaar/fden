@@ -6,7 +6,10 @@ export type GetProducts = (
 	code: string,
 	config?: GetProductsConfig,
 	page?: number,
-	sessionToken?: string
+	opts?: {
+		sessionToken?: string;
+		retries?: number;
+	}
 ) => Promise<ProductsData>;
 
 export type GetNextProducts = (

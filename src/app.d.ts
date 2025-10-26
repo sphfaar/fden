@@ -7,6 +7,12 @@ declare global {
 			cf: CfProperties;
 			ctx: ExecutionContext;
 		}
+		interface Locals {
+			srcSessions: {
+				name: string;
+				value: string;
+			}[];
+		}
 	}
 
 	type ProductsFromSourcePromises = Map<SourceDescriptors, Promise<ProductsData>>;
@@ -98,4 +104,3 @@ declare global {
 }
 
 export {};
-

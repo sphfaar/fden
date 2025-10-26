@@ -54,6 +54,6 @@ export async function getJsonToProducts<T>(
 			products: products
 		};
 	} catch (err) {
-		error(500, `${sourceID} error: ${err}`);
+		error(500, `${sourceID} ${err}`);
 	}
 }

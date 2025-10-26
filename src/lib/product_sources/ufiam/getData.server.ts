@@ -1,14 +1,17 @@
 import { getJsonToProducts } from '../getJsonToProductsData.server';
 import type { GetNextProducts, GetProducts } from '../types';
 import type ResponseSchema from './ResponseSchema';
+import { headers } from '../constants';
 
-export const getProducts: GetProducts = async (code: string, config, page = 1) => {
+export const getProducts: GetProducts = async (code, maxItems, config, page = 1) => {
 	const codeEncoded = encodeURIComponent(code);
+	const nItems = Math.min(maxItems, 1000);
+
 	const axiosReqConfig = {
 		method: 'POST',
 		url: 'https://shop.ufi-aftermarket.com/it/s/sfsites/aura',
 		headers: {
-			'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:134.0) Gecko/20100101 Firefox/134.0',
+			...headers,
 			Accept: '*/*',
 			'Accept-Language': 'en,en-US;q=0.7,it;q=0.3',
 			'Accept-Encoding': 'gzip, deflate, zstd',
@@ -19,11 +22,10 @@ export const getProducts: GetProducts = async (code: string, config, page = 1) =
 			'Sec-Fetch-Mode': 'cors',
 			'Sec-Fetch-Site': 'same-origin',
 			TE: 'trailers',
-			'Sec-GPC': '1',
-			DNT: '1'
+			'Sec-GPC': '1'
 		},
 		data: {
-			message: `{"actions":[{"id":"140;a","descriptor":"aura://ApexActionController/ACTION$execute","callingDescriptor":"UNKNOWN","params":{"namespace":"","classname":"B2B_CompetitorController","method":"getCompetitorsTable","params":{"searchKey":"${code}","nLimit":100,"offset":${((page - 1) * 100).toString()}},"cacheable":false,"isContinuation":false}}]}`,
+			message: `{"actions":[{"id":"140;a","descriptor":"aura://ApexActionController/ACTION$execute","callingDescriptor":"UNKNOWN","params":{"namespace":"","classname":"B2B_CompetitorController","method":"getCompetitorsTable","params":{"searchKey":"${code}","nLimit":${nItems},"offset":${((page - 1) * nItems).toString()}},"cacheable":false,"isContinuation":false}}]}`,
 			'aura.context':
 				'{"mode":"PROD","fwuid":"eUNJbjV5czdoejBvRlA5OHpDU1dPd1pMVExBQkpJSlVFU29Ba3lmcUNLWlE5LjMyMC4y","app":"siteforce:communityApp","loaded":{"APPLICATION@markup://siteforce:communityApp":"1183_iYPVTlE11xgUFVH2RcHXYA"},"dn":[],"globals":{},"uad":true}',
 			'aura.pageURI': `/it/s/catalogue?language=en_US&category=freeSearch&searchText=${codeEncoded}`,
@@ -56,7 +58,7 @@ export const getProducts: GetProducts = async (code: string, config, page = 1) =
 					return products;
 				},
 				nPages: (resData) =>
-					Math.ceil(resData.actions[0].returnValue.returnValue.total.value / 100),
+					Math.ceil(resData.actions[0].returnValue.returnValue.total.value / nItems),
 				totalItems: (resData) => resData.actions[0].returnValue.returnValue.total.value
 			},
 			config,
@@ -77,5 +79,5 @@ export const getProducts: GetProducts = async (code: string, config, page = 1) =
 	}
 };
 
-export const getNextProducts: GetNextProducts = (code, config, page) =>
-	getProducts(code, config, page + 1);
+export const getNextProducts: GetNextProducts = (code, maxItems, config, page) =>
+	getProducts(code, maxItems, config, page + 1);

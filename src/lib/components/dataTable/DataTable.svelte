@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Funnel } from '@lucide/svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 
 	let { products }: { products: ProductOfTable[] } = $props();
 
@@ -8,9 +9,15 @@
 
 	let productsFiltered = $derived<ProductOfTable[]>(
 		filter
-			? products.filter((p) => p.crossCode.includes(filter) || p.manufacturerCode.includes(filter))
+			? products.filter(
+					(p) =>
+						p.crossCode && (p.crossCode.includes(filter) || p.manufacturerCode.includes(filter))
+				)
 			: products
 	);
+
+	let thumbnailsInProxyFallback = new SvelteSet<string>();
+	let thumbnailsHidden = new SvelteSet<string>();
 </script>
 
 <div class="flex w-full items-center gap-2 border border-primary/50 px-2 py-1">
@@ -57,7 +64,7 @@
 			{@const crossCodeSplitted = filter ? product.crossCode.split(filter) : null}
 			<tr class=" {i % 2 === 0 ? 'bg-secondary/5' : ''} data-[state=selected]:bg-muted">
 				<td class="p-4 py-2 align-middle [&:has([role=checkbox])]:pr-0">
-					<img class="h-6 pl-4" src={product.source.image} alt={product.source.name} />
+					<img class="h-6 pl-4" src={product.source.image} alt="s_img" />
 				</td>
 				<td class="p-4 py-2 align-middle [&:has([role=checkbox])]:pr-0">
 					{#if manCodeSplitted && filter}
@@ -79,14 +86,22 @@
 				<td class="p-4 py-2 align-middle [&:has([role=checkbox])]:pr-0">
 					{#if product.thumbnails}
 						<ul>
-							{#each product.thumbnails as thumbnail, i (i)}
-								<li>
+							{#each product.thumbnails as url, j (j)}
+								<li class:hidden={thumbnailsHidden.has(url)}>
 									<img
-										class="size-8 object-cover"
+										src={thumbnailsInProxyFallback.has(url)
+											? `/proxy?url=${encodeURIComponent(url)}`
+											: url}
+										loading="lazy"
+										alt="p_img"
 										height={32}
 										width={32}
-										src={thumbnail}
-										alt={product.manufacturerCode}
+										class="size-8 object-cover"
+										onerror={() => {
+											// if url proxy already attempted then hide
+											if (thumbnailsInProxyFallback.has(url)) thumbnailsHidden.add(url);
+											else thumbnailsInProxyFallback.add(url);
+										}}
 									/>
 								</li>
 							{/each}

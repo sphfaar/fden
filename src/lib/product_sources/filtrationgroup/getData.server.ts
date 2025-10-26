@@ -1,20 +1,22 @@
 import type ResponseSchema from './ResponseSchema';
 import { error } from '@sveltejs/kit';
-import { getHtmlToProducts } from '../getHtmlToProductsData.server';
+import { getHtmlToProducts } from '$lib/product_sources/getHtmlToProductsData.server';
+import { headers } from '$lib/product_sources/constants';
 import type { GetNextProducts, GetProducts } from '../types';
 
-export const getProducts: GetProducts = async (code: string, config) => {
+export const getProducts: GetProducts = async (code: string, maxItems, config) => {
+	const nItems = Math.min(maxItems, Infinity);
+
 	const axiosReqConfig = {
 		method: 'GET',
 		url: 'https://shopindustrial.filtrationgroup.com/competitor/product/search',
 		params: { search_query: code },
 		headers: {
-			'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0',
+			...headers,
 			Accept: 'application/json, text/javascript, */*; q=0.01',
 			'Accept-Language': 'en-US,en;q=0.5',
 			'Accept-Encoding': 'gzip, deflate, zstd',
 			Referer: 'https://shopindustrial.filtrationgroup.com/en/comparison-list.html',
-			DNT: '1',
 			'Sec-GPC': '1',
 			Connection: 'keep-alive',
 			'Sec-Fetch-Dest': 'empty',
@@ -35,7 +37,7 @@ export const getProducts: GetProducts = async (code: string, config) => {
 				tableRows: (document) => document.querySelectorAll('.data.table > tbody > tr'),
 				rowsIterator: (tableRows) => {
 					const products: Product[] = [];
-					for (let i = 0; i < tableRows.length; i++) {
+					for (let i = 0; i < Math.min(tableRows.length, nItems); i++) {
 						const row = tableRows[i];
 						products.push({
 							manufacturer: row.querySelector(':nth-child(3)')?.textContent?.trim() ?? '',

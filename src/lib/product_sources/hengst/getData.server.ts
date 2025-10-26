@@ -1,8 +1,11 @@
+import type { GetProducts, GetNextProducts } from '../types';
 import { error } from '@sveltejs/kit';
 import { getHtmlToProducts } from '../getHtmlToProductsData.server';
-import type { GetProducts, GetNextProducts } from '../types';
+import { headers } from '$lib/product_sources/constants';
 
-export const getProducts: GetProducts = async (code, config, page = 1) => {
+export const getProducts: GetProducts = async (code, maxItems, config, page = 1) => {
+	// const nItems = Math.min(maxItems, Infinity);
+
 	const axiosReqConfig = {
 		method: 'GET',
 		url: 'https://catalog.hengst.com/en/online-catalog/search-results/ajax.api',
@@ -22,14 +25,13 @@ export const getProducts: GetProducts = async (code, config, page = 1) => {
 			'request[arguments][sort_order]': 'asc'
 		},
 		headers: {
+			...headers,
 			cookie: 'catalog=it',
 			Host: 'catalog.hengst.com',
-			'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0',
 			Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 			'Accept-Language': 'en-US,en;q=0.5',
 			'Accept-Encoding': 'gzip, deflate, br, zstd',
 			Referer: 'https://catalog.hengst.com/en/online-catalog/search/?catalog=it',
-			DNT: '1',
 			Connection: 'keep-alive',
 			'Upgrade-Insecure-Requests': '1',
 			'Sec-Fetch-Dest': 'document',
@@ -142,5 +144,5 @@ export const getProducts: GetProducts = async (code, config, page = 1) => {
 	}
 };
 
-export const getNextProducts: GetNextProducts = async (code, config, page = 1) =>
-	await getProducts(code, config, page + 1);
+export const getNextProducts: GetNextProducts = async (code, maxItems, config, page = 1) =>
+	await getProducts(code, maxItems, config, page + 1);

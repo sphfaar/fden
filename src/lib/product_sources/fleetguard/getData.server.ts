@@ -1,15 +1,18 @@
-import { getJsonToProducts } from '../getJsonToProductsData.server';
 import type { GetNextProducts, GetProducts } from '../types';
 import type ResponseSchema from './ResponseSchema';
+import { getJsonToProducts } from '$lib/product_sources/getJsonToProductsData.server';
+import { headers } from '$lib/product_sources/constants';
 
-export const getProducts: GetProducts = async (code: string, config) => {
+export const getProducts: GetProducts = async (code, maxItems, config) => {
+	// const nItems = Math.min(maxItems, 10);
+
 	const codeEncoded = encodeURIComponent(code);
 	const axiosReqConfig = {
 		method: 'POST',
 		url: 'https://www.fleetguard.com/s/sfsites/aura',
 		headers: {
+			...headers,
 			'Content-Type': 'application/x-www-form-urlencoded',
-			'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0',
 			Connection: 'keep-alive',
 			TE: 'trailers',
 			'Sec-GPC': '1',
@@ -17,8 +20,7 @@ export const getProducts: GetProducts = async (code: string, config) => {
 			'Sec-Fetch-Mode': 'no-cors',
 			'Sec-Fetch-Site': 'same-origin',
 			Pragma: 'no-cache',
-			'Cache-Control': 'no-cache',
-			DNT: '1'
+			'Cache-Control': 'no-cache'
 		},
 		data: new URLSearchParams({
 			message: `{"actions":[{"id":"364;a","descriptor":"aura://ApexActionController/ACTION$execute","callingDescriptor":"UNKNOWN","params":{"namespace":"","classname":"SearchedEquipmentsList","method":"getHybridData","params":{"queryTerm":"${code}*","effAccountId":null,"country":"US"},"cacheable":false,"isContinuation":false}},{"id":"365;a","descriptor":"aura://ApexActionController/ACTION$execute","callingDescriptor":"UNKNOWN","params":{"namespace":"","classname":"SearchedEquipmentsList","method":"checkIfFuzzySearch","params":{"queryTerm":"${code}"},"cacheable":false,"isContinuation":false}},{"id":"366;a","descriptor":"aura://ApexActionController/ACTION$execute","callingDescriptor":"UNKNOWN","params":{"namespace":"","classname":"SearchedProductList","method":"fetchGuestDatafromSolr","params":{"queryTerm":"${code}","region":"North America","featuredProducts":false,"ShowTop100GLobalRankProduct":false,"country":"US","language":"en_US","isExportFile":false},"cacheable":false,"isContinuation":false}},{"id":"367;a","descriptor":"aura://ApexActionController/ACTION$execute","callingDescriptor":"UNKNOWN","params":{"namespace":"","classname":"VINSearchCtrl","method":"getAccountinfo","params":{"effAccountId":null},"cacheable":false,"isContinuation":false}}]}`,

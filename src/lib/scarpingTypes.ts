@@ -29,7 +29,7 @@ export const scrapingTypeColors = new Map<
 				longDescription: 'sources with fast machine-readable protocols'
 			},
 			style: {
-				bg: 'bg-cyan-300/5',
+				bg: 'bg-cyan-300/75',
 				stroke: 'stroke-cyan-300',
 				border: 'border-cyan-300',
 				textColor: 'text-cyan-300',
@@ -51,7 +51,7 @@ export const scrapingTypeColors = new Map<
 					'sources without machine-readable protocols due to abstention or negligence'
 			},
 			style: {
-				bg: 'bg-yellow-500/5',
+				bg: 'bg-yellow-500/75',
 				stroke: 'stroke-yellow-500',
 				border: 'border-yellow-500',
 				textColor: 'text-yellow-500',
@@ -73,7 +73,7 @@ export const scrapingTypeColors = new Map<
 	// 				'sources with anti-scraping countermeasures, automated headless browser needed'
 	// 		},
 	// 		style: {
-	// 			bg: 'bg-rose-600/5',
+	// 			bg: 'bg-rose-600/75',
 	// 			stroke: 'stroke-rose-600',
 	// 			border: 'border-rose-600',
 	// 			textColor: 'text-rose-600',

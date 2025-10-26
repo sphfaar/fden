@@ -1,6 +1,7 @@
 import type { GetProducts, GetNextProducts } from '../types';
 import { error, fail, type ActionFailure } from '@sveltejs/kit';
 import { getHtmlToProducts } from '../getHtmlToProductsData.server';
+import { headers } from '$lib/product_sources/constants';
 
 export async function getSession(
 	username: string,
@@ -9,8 +10,8 @@ export async function getSession(
 	const options = {
 		method: 'POST',
 		headers: {
+			...headers,
 			Host: 'fbn.it',
-			'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0',
 			Accept: 'text/html, */*; q=0.01',
 			'Accept-Language': 'en-US,en;q=0.5',
 			'Accept-Encoding': 'gzip, deflate',
@@ -21,7 +22,6 @@ export async function getSession(
 				'multipart/form-data; boundary=---------------------------407975758941551243592795615748',
 			'Content-Length': '569',
 			Origin: 'http://fbn.it',
-			DNT: '1',
 			'Sec-GPC': '1',
 			Connection: 'keep-alive',
 			Referer: 'http://fbn.it/ita/cross-reference',
@@ -52,7 +52,9 @@ export async function getSession(
 	}
 }
 
-export const getProducts: GetProducts = async (code, config, page = 1, sessionToken?) => {
+export const getProducts: GetProducts = async (code, maxItems, config, page = 1, sessionToken?) => {
+	// const nItems = Math.min(maxItems, Infinity);
+
 	if (!sessionToken) error(400, 'FBN session token not found');
 	const axiosReqConfig = {
 		method: 'GET',
@@ -66,8 +68,8 @@ export const getProducts: GetProducts = async (code, config, page = 1, sessionTo
 			_pjax: ''
 		},
 		headers: {
+			...headers,
 			Host: 'www.fbn.it',
-			'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0',
 			Accept: 'text/html, */*; q=0.01',
 			'Accept-Language': 'en-US,en;q=0.5',
 			'Accept-Encoding': 'gzip, deflate',
@@ -75,7 +77,6 @@ export const getProducts: GetProducts = async (code, config, page = 1, sessionTo
 			'X-PJAX': 'true',
 			'X-PJAX-Container': '#cr-container',
 			'X-Requested-With': 'XMLHttpRequest',
-			DNT: '1',
 			'Sec-GPC': '1',
 			Connection: 'keep-alive',
 			Priority: 'u=0',
@@ -118,67 +119,15 @@ export const getProducts: GetProducts = async (code, config, page = 1, sessionTo
 			page,
 			9
 		);
-		// if (config.showPerfReqProxyToSource) performance.mark('fbn-req-start');
-		// const response = await axios.request(options);
-		// if (response.status >= 400) {
-		// 	return {
-		// 		meta: {
-		// 			status: response.status,
-		// 			currentItemsDisplayed: 0,
-		// 			totalItems: 0,
-		// 			maxItemsPagination: 0,
-		// 			page: 0
-		// 		},
-		// 		products: []
-		// 	};
-		// }
-		//
-		// const html = await response.data;
-		// if (config.showPerfReqProxyToSource) performance.mark('fbn-req-end');
-		//
-		// if (config.showPerfParsing) performance.mark('fbn-parse-start');
-		// const { document } = parseHTML(html);
-		// const tableRows = document.querySelectorAll('.table > tbody > tr');
-		//
-		// const nPages: number = Number(
-		// 	document.querySelector("[name='batchIndex'] option:last-child")?.getAttribute('value')
-		// );
-		//
-		// const products: Product[] = [];
-		// for (let i = 0; i < tableRows.length; i++) {
-		// 	products.push({
-		// 		manufacturer: tableRows[i].querySelector('td:nth-child(1)')?.textContent?.trim() ?? '',
-		// 		manufacturer_code: tableRows[i].querySelector('td:nth-child(2)')?.textContent?.trim() ?? '',
-		// 		source_reference_code:
-		// 			tableRows[i].querySelector('td:nth-child(3)')?.textContent?.trim() ?? ''
-		// 	});
-		// }
-		// if (config.showPerfParsing) performance.mark('fbn-parse-end');
-		// return {
-		// 	meta: {
-		// 		status: response.status,
-		// 		currentItemsDisplayed: products.length,
-		// 		totalItems: page < nPages ? String((nPages - 1) * 9) + '+' : nPages * products.length,
-		// 		page: page,
-		// 		pages: nPages,
-		// 		maxItemsPagination: 9,
-		// 		performanceTimings: {
-		// 			fetchTimings: {
-		// 				proxyToSource: config.showPerfReqProxyToSource
-		// 					? performance.measure('fbn-req', 'fbn-req-start', 'fbn-req-end').duration
-		// 					: null
-		// 			},
-		// 			parsing: config.showPerfParsing
-		// 				? performance.measure('fbn-parse', 'fbn-parse-start', 'fbn-parse-end').duration
-		// 				: null
-		// 		}
-		// 	},
-		// 	products: products
-		// };
 	} catch (err) {
 		error(500, `FBN error: ${err}`);
 	}
 };
 
-export const getNextProducts: GetNextProducts = async (code, config, page = 1, sessionToken?) =>
-	await getProducts(code, config, page + 1, sessionToken);
+export const getNextProducts: GetNextProducts = async (
+	code,
+	maxItems,
+	config,
+	page = 1,
+	sessionToken?
+) => await getProducts(code, maxItems, config, page + 1, sessionToken);

@@ -1,20 +1,22 @@
-import { getJsonToProducts } from '../getJsonToProductsData.server';
 import type { GetNextProducts, GetProducts } from '../types';
 import type ResponseSchema from './ResponseSchema';
+import { getJsonToProducts } from '../getJsonToProductsData.server';
+import { headers } from '$lib/product_sources/constants';
 
-export const getProducts: GetProducts = async (code: string, config, page: number = 1) => {
+export const getProducts: GetProducts = async (code, maxItems, config, page: number = 1) => {
+	const nItems = Math.min(maxItems, 100);
+
 	const axiosReqConfig = {
 		method: 'POST',
 		url: 'https://webservice.tecalliance.services/pegasus-3-0/services/TecdocToCatDLB.jsonEndpoint',
 		headers: {
+			...headers,
 			Host: 'webservice.tecalliance.services',
-			'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:134.0) Gecko/20100101 Firefox/134.0',
 			Accept: 'application/json, text/plain, */*',
 			'Accept-Language': 'en,en-US;q=0.7,it;q=0.3',
 			'Accept-Encoding': 'gzip, deflate, br, zstd',
 			'Content-Length': '1036',
 			Origin: 'https://web.tecalliance.net',
-			DNT: '1',
 			'Sec-GPC': '1',
 			Connection: 'keep-alive',
 			'Sec-Fetch-Dest': 'empty',
@@ -37,7 +39,7 @@ export const getProducts: GetProducts = async (code: string, config, page: numbe
 				searchMatchType: 'prefix_or_suffix',
 				searchType: 10,
 				page: page,
-				perPage: 100,
+				perPage: nItems,
 				sort: [
 					{ field: 'score', direction: 'desc' },
 					{ field: 'mfrName', direction: 'asc' },
@@ -48,7 +50,7 @@ export const getProducts: GetProducts = async (code: string, config, page: numbe
 				genericArticleIds: [],
 				includeAll: false,
 				includeLinkages: true,
-				linkagesPerPage: 100,
+				linkagesPerPage: nItems,
 				includeGenericArticles: true,
 				includeArticleCriteria: true,
 				includeMisc: true,
@@ -83,66 +85,19 @@ export const getProducts: GetProducts = async (code: string, config, page: numbe
 						const row = resData.articles[i];
 						products.push({
 							manufacturer: row.mfrName,
-							manufacturer_code: row.gtins[0] ?? '🤔 no codes',
+							manufacturer_code: row.gtins[0] ?? 'no code',
 							source_reference_code: row.articleNumber
 						});
 					}
 					return products;
 				},
 				nPages: (resData) => resData.maxAllowedPage,
-				pagination: 100,
+				pagination: nItems,
 				totalItems: (resData) => resData.totalMatchingArticles
 			},
 			config,
 			page
 		);
-		// const response = await axios.request(axiosReqConfig);
-		// if (response.status >= 400) {
-		// 	return {
-		// 		meta: {
-		// 			status: response.status,
-		// 			currentItemsDisplayed: 0,
-		// 			totalItems: null,
-		// 			maxItemsPagination: null,
-		// 			page: 0
-		// 		},
-		// 		products: []
-		// 	};
-		// }
-		//
-		// const responseData: ResponseSchema = await response.data;
-		// const products: Product[] = [];
-		// if (responseData.status === 400) {
-		// 	return {
-		// 		meta: {
-		// 			status: response.status,
-		// 			currentItemsDisplayed: 0,
-		// 			totalItems: null,
-		// 			maxItemsPagination: null,
-		// 			page: 0
-		// 		},
-		// 		products: []
-		// 	};
-		// }
-		// for (let i = 0; i < responseData.articles.length; i++) {
-		// 	const row = responseData.articles[i];
-		// 	products.push({
-		// 		manufacturer: row.mfrName,
-		// 		manufacturer_code: row.gtins[0] ?? '🤔 no codes',
-		// 		source_reference_code: row.articleNumber
-		// 	});
-		// }
-		// return {
-		// 	meta: {
-		// 		status: response.status,
-		// 		currentItemsDisplayed: responseData.articles.length,
-		// 		totalItems: responseData.totalMatchingArticles,
-		// 		maxItemsPagination: 100,
-		// 		page: page,
-		// 		pages: responseData.maxAllowedPage
-		// 	},
-		// 	products: products
-		// };
 	} catch (err) {
 		console.error('mahle (aftermarket) error', err);
 		return {
@@ -158,5 +113,5 @@ export const getProducts: GetProducts = async (code: string, config, page: numbe
 	}
 };
 
-export const getNextProducts: GetNextProducts = async (code: string, config, page: number) =>
-	await getProducts(code, config, page + 1);
+export const getNextProducts: GetNextProducts = async (code, maxItems, config, page: number) =>
+	await getProducts(code, maxItems, config, page + 1);

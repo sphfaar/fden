@@ -1,20 +1,21 @@
 import type { GetNextProducts, GetProducts } from '../types';
 import type ResponseSchema from './ResponseSchema';
-// import { getJsonToProducts } from '../getJsonToProductsData.server';
 import { wrapper } from 'axios-cookiejar-support';
 import { CookieJar } from 'tough-cookie';
 import axios from 'axios';
-import { getProductThumbnails } from '../getProductsThumbnails.server';
+import { headers } from '$lib/product_sources/constants';
 
 // NOTE: Helper function to add a delay (ms) between requests to avoid rate limiting, which can cause 403 after multiple queries in a short time.
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const getProducts: GetProducts = async (
 	code: string,
+	maxItems,
 	config,
 	page = 1,
 	opts = { retries: 2 }
 ) => {
+	const nItems = Math.min(maxItems, Infinity);
 	// NOTE: Added retries param (default 2) to handle intermittent 403 by refreshing cookies.
 	const formattedCode = code.replaceAll(/[^\w]/g, '').toUpperCase();
 	// NOTE: Make Referer dynamic to match the code/query, as hardcoded values can cause mismatches leading to 403 or invalid sessions.
@@ -28,6 +29,7 @@ export const getProducts: GetProducts = async (
 			jar,
 			withCredentials: true, // NOTE: Enable credentials to send/receive cookies automatically.
 			headers: {
+				...headers,
 				Accept: '*/*',
 				'Accept-Encoding': 'gzip, deflate, br, zstd',
 				'Accept-Language': 'en-US,en;q=0.5',
@@ -42,8 +44,7 @@ export const getProducts: GetProducts = async (
 				'Sec-Fetch-Mode': 'cors',
 				'Sec-Fetch-Site': 'same-origin',
 				'Sec-GPC': '1',
-				TE: 'trailers',
-				'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:144.0) Gecko/20100101 Firefox/144.0'
+				TE: 'trailers'
 			},
 			// NOTE: If running in Cloudflare Workers, avoid timeouts; set reasonable limits.
 			timeout: 10000 // 10s timeout to prevent hanging on slow responses.
@@ -58,18 +59,17 @@ export const getProducts: GetProducts = async (
 		// If Akamai requires JS (rarely in initial GET), this may fail—consider a headless browser like Puppeteer (but not in Cloudflare Workers; use external service).
 		await client.get(refererUrl.replace('https://www.baldwinfilters.com', '')); // Relative path for baseURL.
 
-		// NOTE: Now perform the POST with the same client; cookies will be included automatically, reducing 403 risks.
+		// NOTE: Perform the POST with the same client; cookies will be included automatically, reducing 403 risks.
 		const response = await client.post(
 			'/content/baldwin-filters/us/en/cross-reference-result-page.data.json',
 			{
-				url: `https://api.parker.com/prod/baldwinsearch/BaldwinECatalog/select?fq=coreName_s:BaldwinCrossRefData&=&wt=json&indent=true&group=true&group.offset=0&group.query=compPartId_s:(%22${formattedCode}%22%20OR%20${formattedCode}*%20OR%20*${formattedCode}*)&q=compPartId_s:(%22${formattedCode}%22%20OR%20${formattedCode}*%20OR%20*${formattedCode}*%20)%5E1%20OR%20partNumber_s:(%22${formattedCode}%22%20OR%20${formattedCode}*%20)%5E2&group.limit=-1`,
+				url: `https://api.parker.com/prod/baldwinsearch/BaldwinECatalog/select?fq=coreName_s:BaldwinCrossRefData&=&wt=json&indent=true&group=true&group.offset=0&group.query=compPartId_s:(%22${formattedCode}%22%20OR%20${formattedCode}*%20OR%20*${formattedCode}*)&q=compPartId_s:(%22${formattedCode}%22%20OR%20${formattedCode}*%20OR%20*${formattedCode}*%20)%5E1%20OR%20partNumber_s:(%22${formattedCode}%22%20OR%20${formattedCode}*%20)%5E2&group.limit=${isFinite(nItems) ? nItems : -1}`,
 				ocpApimSubscriptionKey: 'a61a00f528344ce29179af297ccbbea8',
 				partNumber: [code],
 				type: 'crossRef'
 			}
 		);
 
-		// NOTE: Process the response data as before, but now with reliable fetching.
 		const resData = response.data as ResponseSchema;
 		const products: Product[] = [];
 		const groupKey = `compPartId_s:("${formattedCode}" OR ${formattedCode}* OR *${formattedCode}*)`;
@@ -83,20 +83,22 @@ export const getProducts: GetProducts = async (
 			i++
 		) {
 			const row = docs[i];
-			const urlKeyword = row.urlKeyword_si; // NOTE: Type as string | undefined implicitly.
+			const urlKeyword = row.urlKeyword_si;
 			const urlKeyword2 = row.psURLKeyword_si;
 			const detailsUrl = urlKeyword
 				? `https://ph.baldwinfilters.com/baldwin/en/${urlKeyword}`
 				: undefined;
-			const thumbnailUrl = urlKeyword2
-				? `https://www.parker.com/content/dam/Parker-com/Online/Product-Images/Engine-Mobile-Aftermarket-Division/zoom_1000x1000/${convertProductString(urlKeyword2)}_${row.code_si}_zm.jpg`
+
+			const thumbnailUrlProdString = convertProductString(urlKeyword2);
+			const thumbnailUrl = thumbnailUrlProdString
+				? `https://www.parker.com/content/dam/Parker-com/Online/Product-Images/Engine-Mobile-Aftermarket-Division/zoom_1000x1000/${thumbnailUrlProdString}_${row.code_si}_zm.jpg`
 				: undefined;
 			products.push({
-				manufacturer: row.manufacturer_s, // NOTE: Assume required; add similar guards if errors occur here in future.
+				manufacturer: row.manufacturer_s,
 				manufacturer_code: row.partNumber_s,
 				source_reference_code: row.code_si,
 				detailsUrl,
-				thumbnails: thumbnailUrl ? getProductThumbnails([thumbnailUrl]) : undefined
+				thumbnails: thumbnailUrl ? [thumbnailUrl] : undefined
 			});
 		}
 
@@ -119,7 +121,7 @@ export const getProducts: GetProducts = async (
 		if (opts.retries && opts.retries > 0) {
 			console.warn(`possible 403 detected; retrying (${opts.retries} left)...`);
 			await delay(2000); // Longer delay on retry to cool off.
-			return getProducts(code, config, page, { retries: opts.retries - 1 });
+			return getProducts(code, maxItems, config, page, { retries: opts.retries - 1 });
 		}
 		return {
 			meta: {
@@ -137,33 +139,36 @@ export const getProducts: GetProducts = async (
 export const getNextProducts: GetNextProducts = () => null;
 
 // Function to convert the input string to the format of images urls
-function convertProductString(input?: string): string {
+function convertProductString(input?: string): string | null {
 	if (!input) {
-		console.warn('convertProductString called with missing/empty input; returning empty string'); // NOTE: Log for debugging; avoids silent failures.
-		return '';
+		console.warn('convertProductString called with missing/empty input; returning empty string');
+		return null;
 	}
+	// NOTE: Remove any spaces from the input to handle potential whitespace in URLs or data (e.g., from API variations); uses regex for global replacement
+	input = input.replace(/\s/g, '');
 	// NOTE: Split the input by '/' and skip the first segment ('product-list' or 'product').
 	const segments = input.split('/').slice(1);
 
-	// NOTE: Basic validation: Ensure there is at least one relevant segment (handles new format with 1 segment or old with 2).
+	// Basic validation: Ensure there is at least one relevant segment (handles new format with 1 segment or old with 2).
 	if (segments.length < 1) {
-		throw new Error('Invalid input format: Expected at least one segment after the prefix');
+		return null;
 	}
 
 	const part1 = segments[0];
-	// NOTE: Process part1: Split by '-', capitalize each word, and join with '_'.
+	// Process part1: Split by '-', capitalize each word, and join with '_'.
 	const processedPart1 = part1
 		.split('-')
 		.map((word) => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize first letter of each word
-		.join('_');
+		.join('_')
+		.replace('Baldwin_In_', 'Baldwin_In-');
 
 	let processedPart2 = '';
 	if (segments.length > 1) {
 		const part2 = segments[1];
-		// NOTE: Process part2 (if present in old format): Uppercase the entire string, as per current code (e.g., "p203" -> "P203").
+		// Process part2 (if present in old format): Uppercase the entire string, as per current code (e.g., "p203" -> "P203").
 		processedPart2 = '_' + part2.toUpperCase();
 	}
 
-	// NOTE: Join the processed parts (appends nothing if no part2 in new format).
+	// Join the processed parts (appends nothing if no part2 in new format).
 	return processedPart1 + processedPart2;
 }

@@ -1,12 +1,14 @@
+import { getJsonToProducts } from '$lib/product_sources/getJsonToProductsData.server';
+import { headers } from '$lib/product_sources/constants';
 import type { GetProducts, GetNextProducts } from '../types';
 import type ResponseSchema from './ResponseSchema';
-import { getJsonToProducts } from '../getJsonToProductsData.server';
 
-export const getProducts: GetProducts = async (code, config, page = 1) => {
+export const getProducts: GetProducts = async (code, maxItems, config, page = 1) => {
 	const axiosReqConfig = {
 		method: 'POST',
 		url: 'https://portal.argo-hytos.com/core-app/api/elastic-search/oem-spare-parts',
 		headers: {
+			...headers,
 			Accept: 'application/json, text/plain, */*',
 			'Accept-Encoding': 'gzip, deflate, br, zstd',
 			'Accept-Language': 'en-US,en;q=0.5',
@@ -22,8 +24,7 @@ export const getProducts: GetProducts = async (code, config, page = 1) => {
 			'Sec-Fetch-Mode': 'cors',
 			'Sec-Fetch-Site': 'same-origin',
 			'Sec-GPC': '1',
-			TE: 'trailers',
-			'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:144.0) Gecko/20100101 Firefox/144.0'
+			TE: 'trailers'
 		},
 		data: { term: code, filters: [], language: 'en', limit: 12, offset: (page - 1) * 12 }
 	};
@@ -73,5 +74,5 @@ export const getProducts: GetProducts = async (code, config, page = 1) => {
 	}
 };
 
-export const getNextProducts: GetNextProducts = async (code, config, page = 1) =>
-	await getProducts(code, config, page + 1);
+export const getNextProducts: GetNextProducts = async (code, maxItems, config, page = 1) =>
+	await getProducts(code, maxItems, config, page + 1);

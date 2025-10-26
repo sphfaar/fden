@@ -4,6 +4,7 @@ interface GetProductsConfig {
 }
 export type GetProducts = (
 	code: string,
+	maxItems: number,
 	config?: GetProductsConfig,
 	page?: number,
 	opts?: {
@@ -14,7 +15,11 @@ export type GetProducts = (
 
 export type GetNextProducts = (
 	code: string,
+	maxItems: number,
 	config?: GetProductsConfig,
 	page: number,
-	sessionToken?: string
+	opts?: {
+		sessionToken?: string;
+		retries?: number;
+	}
 ) => Promise<ProductsData> | null;

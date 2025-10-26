@@ -7,8 +7,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		sourceID: string;
 		meta: MetaData;
 		code: string;
+		maxItems: number;
 	}
-	const { sourceID, meta, code }: RequestData = await request.json();
+	const { sourceID, meta, code, maxItems }: RequestData = await request.json();
 
 	if (!meta.totalItems && meta.pages && meta.page >= meta.pages)
 		throw error(500, 'you have no more items to load');
@@ -27,17 +28,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		(session) => session.name === sourceID
 	)?.value;
 
-	const productsData: ProductsData | undefined | null = await sourceOfData
-		.getNextProducts(code, { showPerfReqProxyToSource: true }, meta.page, maybeSessionToken)
-		?.then(async (prodsData) => ({
-			...prodsData,
-			products: await Promise.all(
-				prodsData.products.map(async (product) => ({
-					...product,
-					thumbnails: (await product.thumbnails) ?? undefined
-				}))
-			)
-		}));
+	const productsData: ProductsData | undefined | null = await sourceOfData.getNextProducts(
+		code,
+		maxItems,
+		{ showPerfReqProxyToSource: true },
+		meta.page,
+		maybeSessionToken
+	);
 
 	if (!productsData) error(500, 'error fetching products getting products on getNextProducts API');
 	return json(productsData);

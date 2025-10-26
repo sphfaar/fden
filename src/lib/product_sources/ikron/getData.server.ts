@@ -1,4 +1,5 @@
 import { error } from '@sveltejs/kit';
+import { headers } from '$lib/product_sources/constants';
 import type { GetNextProducts, GetProducts } from '../types';
 
 export const getProducts: GetProducts = async (code: string) => {
@@ -6,8 +7,7 @@ export const getProducts: GetProducts = async (code: string) => {
 	try {
 		const res = await fetch(`https://vercpupp-ff.vercel.app/api/ikron?code=${codeEncoded}`, {
 			headers: {
-				DNT: '1',
-				'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0'
+				...headers
 			}
 		});
 

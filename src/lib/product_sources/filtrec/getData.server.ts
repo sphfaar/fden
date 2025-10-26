@@ -1,8 +1,16 @@
-import { getJsonToProducts } from '../getJsonToProductsData.server';
 import type { GetNextProducts, GetProducts } from '../types';
 import type ResponseSchema from './ResponseSchema';
+import { getJsonToProducts } from '$lib/product_sources/getJsonToProductsData.server';
+import { headers } from '$lib/product_sources/constants';
 
-export const getProducts: GetProducts = async (code: string, config, page: number = 1) => {
+export const getProducts: GetProducts = async (
+	code: string,
+	maxItems,
+	config,
+	page: number = 1
+) => {
+	// const nItems = Math.min(maxItems, Infinity);
+
 	// const codeEncoded = encodeURIComponent(code);
 	const axiosReqConfig = {
 		method: 'GET',
@@ -13,8 +21,8 @@ export const getProducts: GetProducts = async (code: string, config, page: numbe
 			locale: 'it'
 		},
 		headers: {
+			...headers,
 			Host: 'cross-navigator.filtrec.com',
-			'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0',
 			Accept: 'application/json',
 			'Accept-Language': 'en-US,en;q=0.5',
 			Referer: 'https://www.filtrec.com/',
@@ -130,5 +138,5 @@ export const getProducts: GetProducts = async (code: string, config, page: numbe
 	}
 };
 
-export const getNextProducts: GetNextProducts = async (code: string, config, page: number) =>
-	await getProducts(code, config, page + 1);
+export const getNextProducts: GetNextProducts = async (code, maxItems, config, page) =>
+	await getProducts(code, maxItems, config, page + 1);

@@ -3,8 +3,8 @@
 @theme {
 	--color-background: oklch(0.1467 0.0041 49.31);
 	--color-primary: oklch(0.6543 0.1589 52.37);
-	--color-secondary: oklch(0.947 0.076 171.54);
-	--color-destructive: oklch(0.3959 0.1331 25.72);
+	--color-secondary: oklch(0.9 0.076 171.54);
+	--color-error: oklch(0.5 0.2577 29.23);
 	--color-scrollbar-thumb: oklch(0.6543 0.1589 52.37);
 	--color-scrollbar-track: oklch(0.05 0.1378 52.37);
 }

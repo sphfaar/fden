@@ -129,10 +129,10 @@
 	class="relative flex h-10 w-full justify-center gap-2.5 px-2.5 max-[800px]:h-fit max-[800px]:flex-col max-[800px]:items-center"
 >
 	<div
-		class="radbg absolute top-[0.29rem] -z-50 h-[calc(100%-0.5rem)] w-[calc(100%-0.25rem)] bg-linear-to-b from-primary/20 to-lime-500/30"
+		class="radbg absolute top-[0.29rem] -z-50 h-[calc(100%-0.5rem)] w-[calc(100%-0.25rem)] bg-linear-to-b from-primary/20 to-secondary/20"
 	></div>
 	<button
-		class="-2px_0_0_0,2px_0_0_0] min-h-7 w-2/5 max-w-16 min-w-fit border border-destructive bg-black px-1 text-destructive shadow-[-5px_0_0_-3px,5px_0_0_-3px] shadow-black transition-colors hover:text-neutral-50"
+		class="-2px_0_0_0,2px_0_0_0] border-destructive text-destructive min-h-7 w-2/5 max-w-16 min-w-fit border bg-black px-1 shadow-[-5px_0_0_-3px,5px_0_0_-3px] shadow-black transition-colors hover:text-neutral-50"
 		onclick={() => {
 			enabledSourceCards.forEach((sc) => (sc.isChecked = false));
 		}}>Reset</button

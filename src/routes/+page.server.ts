@@ -48,6 +48,7 @@ export const load: PageServerLoad = ({ url, locals }) => {
 					srcDescriptors,
 					sourcesGetters?.[srcDescriptors.sourceID].getProducts(
 						productCode,
+						1000,
 						{ showPerfReqProxyToSource: true },
 						1,
 						maybeSessionToken ?? undefined

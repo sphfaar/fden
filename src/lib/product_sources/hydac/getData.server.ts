@@ -1,14 +1,18 @@
 import { getJsonToProducts } from '../getJsonToProductsData.server';
 import { getProductThumbnails } from '../getProductsThumbnails.server';
+import { headers } from '$lib/product_sources/constants';
 import type { GetNextProducts, GetProducts } from '../types';
 import type ResponseSchema from './ResponseSchema';
 
-export const getProducts: GetProducts = async (code: string, config) => {
+export const getProducts: GetProducts = async (code, maxItems, config) => {
+	const nItems = Math.min(maxItems, Infinity);
+
 	const axiosReqConfig = {
 		method: 'GET',
 		url: 'https://www.hydac.com/en/e-tools/betterfit/betterfitSearch/',
 		params: { query: code },
 		headers: {
+			...headers,
 			Accept: '*/*',
 			'Accept-Encoding': 'gzip, deflate, br, zstd',
 			'Accept-Language': 'en-US,en;q=0.5',
@@ -22,8 +26,7 @@ export const getProducts: GetProducts = async (code: string, config) => {
 			'Sec-Fetch-Mode': 'cors',
 			'Sec-Fetch-Site': 'same-origin',
 			'Sec-GPC': '1',
-			TE: 'trailers',
-			'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:144.0) Gecko/20100101 Firefox/144.0'
+			TE: 'trailers'
 		}
 	};
 	try {
@@ -33,7 +36,7 @@ export const getProducts: GetProducts = async (code: string, config) => {
 			{
 				rowsIterator: (resData) => {
 					const products: Product[] = [];
-					for (let i = 0; i < resData.relation.length; i++) {
+					for (let i = 0; i < Math.min(resData.relation.length, nItems); i++) {
 						const row = resData.relation[i];
 						products.push({
 							manufacturer: row.competitor.manufacturer.title,

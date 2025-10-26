@@ -35,6 +35,8 @@
 
 	let { data, form }: PageProps = $props();
 
+	const maxItemsPerSrc = $state(1000);
+
 	const codeRgx = /^[\w.\-/]{3,32}$/;
 	let code = $state(page.url.searchParams.get('q') ?? '');
 	let isLoadingTable: boolean | null = $state(null);
@@ -42,9 +44,30 @@
 
 	const prodsFromSrcPromises: ProductsFromSourcePromises = new SvelteMap(); //products will be added here also by APIs
 
-	const prodsFromSrcFulfilled: ProductsFromSources = new WeakMap();
+	const prodsFromSrcFulfilled: ProductsFromSources = new SvelteMap();
 
-	let productsOfTable: ProductOfTable[] = $state([]);
+	let productsOfTable: ProductOfTable[] = $derived.by(() => {
+		const pot: ProductOfTable[] = [];
+		for (const [srcDescs, prodsData] of prodsFromSrcPromises.entries()) {
+			const fulfilled = prodsFromSrcFulfilled.get(prodsData);
+			if (!fulfilled || !isSourceCardChecked(srcDescs.sourceID)) continue;
+			const products = fulfilled.productsData.products || [];
+			for (const product of products) {
+				pot.push({
+					source: {
+						name: srcDescs.name,
+						image: srcDescs.logo ?? srcDescs.banner
+					},
+					manufacturerCode: product.manufacturer_code,
+					crossCode: product.source_reference_code,
+					manufacturerName: product.manufacturer,
+					detailsUrl: product.detailsUrl,
+					thumbnails: product.thumbnails
+				});
+			}
+		}
+		return pot;
+	});
 
 	let enabledSourceCards: EnabledSourceCard[] = $state(
 		data.newSrcsDescriptors.map((srcDesc) => {
@@ -62,7 +85,7 @@
 	);
 
 	let sourceCardsMetadataPromises = $derived(
-		new SvelteMap<string, Promise<MetaData> | undefined>(
+		new Map<string, Promise<MetaData> | undefined>(
 			enabledSourceCards.map((enabledSC) => {
 				const pfspSrcDescsKey = prodsFromSrcPromises
 					.keys()
@@ -116,7 +139,7 @@
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify({ sourceID, code })
+			body: JSON.stringify({ sourceID, code, maxItems: maxItemsPerSrc })
 		});
 		if (!response) error(500, 'error fetching new products for initial load on page');
 		const responseData: Promise<ProductsData> = response.json();
@@ -139,7 +162,7 @@
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({ sourceID, meta, code })
+				body: JSON.stringify({ sourceID, meta, code, maxItems: maxItemsPerSrc })
 			});
 			if (!response) error(500, 'error loading next products on page');
 			const responseData: ProductsData = await response.json();
@@ -182,33 +205,6 @@
 		}
 	}
 
-	function updateProductsOfTable(
-		prodsFromSrcPromises: ProductsFromSourcePromises,
-		prodsFromSrcFulfilled: ProductsFromSources
-	) {
-		const newPot: ProductOfTable[] = [];
-		prodsFromSrcPromises.forEach((prodsData, srcDescs) => {
-			const newProdsData = prodsFromSrcFulfilled.get(prodsData)?.productsData;
-			if (!srcDescs || !isSourceCardChecked(srcDescs.sourceID) || !newProdsData?.products) return;
-			newPot.push(
-				...newProdsData.products.map((product) => {
-					return {
-						source: {
-							name: srcDescs.name,
-							image: srcDescs.logo ?? srcDescs.banner
-						},
-						manufacturerCode: product.manufacturer_code,
-						crossCode: product.source_reference_code,
-						manufacturerName: product.manufacturer,
-						detailsUrl: product.detailsUrl,
-						thumbnails: product.thumbnails
-					};
-				})
-			);
-		});
-		productsOfTable = newPot;
-	}
-
 	async function addFulfilledProdsToSrc(
 		sourceDescs: SourceDescriptors,
 		prodsDataPromise: Promise<ProductsData>
@@ -219,7 +215,7 @@
 			productsData: await prodsDataPromise
 		});
 		isLoadingTable = false;
-		updateProductsOfTable(prodsFromSrcPromises, prodsFromSrcFulfilled);
+		// updateProductsOfTable(prodsFromSrcPromises, prodsFromSrcFulfilled);
 	}
 
 	$effect(() => {
@@ -254,7 +250,6 @@
 <svelte:head>
 	<title>ff [{code}] {isLoadingTable ? '⏳' : ''}</title>
 </svelte:head>
-<!-- <ModeWatcher track={false} defaultMode="dark" /> -->
 <!-- <Toaster /> -->
 
 <nav
@@ -306,7 +301,6 @@
 						metaDataPromise={metadataPromise}
 						{loadInitialProducts}
 						{loadNextProducts}
-						updateTable={() => updateProductsOfTable(prodsFromSrcPromises, prodsFromSrcFulfilled)}
 						bind:isChecked={disabledSC.isChecked}
 						bind:isDataLoaded={disabledSC.isDataLoaded}
 						lastCodeQuery={disabledSC.lastCodeQuery}
@@ -346,7 +340,6 @@
 						metaDataPromise={metadataPromise}
 						{loadInitialProducts}
 						{loadNextProducts}
-						updateTable={() => updateProductsOfTable(prodsFromSrcPromises, prodsFromSrcFulfilled)}
 						bind:isChecked={enabledSC.isChecked}
 						bind:isDataLoaded={enabledSC.isDataLoaded}
 						lastCodeQuery={enabledSC.lastCodeQuery}

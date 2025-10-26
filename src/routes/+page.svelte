@@ -326,7 +326,7 @@
 				)}
 				<div
 					class={[
-						'flex h-16 w-fit flex-col gap-px transition-shadow',
+						'transition-shadow',
 						enabledSC.isMouseOverScrapingType
 							? scrapingTypeColors.get(enabledSC.sourceDescriptors.scrapingType)?.style.shadow.top
 							: 'bg-background'

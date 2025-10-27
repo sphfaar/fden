@@ -1,6 +1,6 @@
-import { error } from '@sveltejs/kit';
 import type { GetProductsConfig } from './types';
 import type { AxiosRequestConfig } from 'axios';
+import { error } from '@sveltejs/kit';
 import axios from 'axios';
 import { parseHTML } from 'linkedom';
 
@@ -41,7 +41,7 @@ export async function getHtmlToProducts<T>(
 			};
 		}
 
-		const html = await response.data;
+		const html = response.data;
 		const reqEnd = config?.showPerfReqProxyToSource ? Date.now() : null;
 
 		const { document } = parseHTML(

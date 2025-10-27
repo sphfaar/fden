@@ -1,8 +1,8 @@
 import type ResponseSchema from './ResponseSchema';
+import type { GetNextProducts, GetProducts } from '../types';
 import { error } from '@sveltejs/kit';
 import { getHtmlToProducts } from '$lib/product_sources/getHtmlToProductsData.server';
 import { headers } from '$lib/product_sources/constants';
-import type { GetNextProducts, GetProducts } from '../types';
 
 export const getProducts: GetProducts = async (code: string, maxItems, config) => {
 	const nItems = Math.min(maxItems, Infinity);
@@ -44,7 +44,8 @@ export const getProducts: GetProducts = async (code: string, maxItems, config) =
 							manufacturer_code: row.querySelector(':nth-child(1)')?.textContent?.trim() ?? '',
 							source_reference_code:
 								row.getElementsByClassName('fg_additional_product_info')[0]?.textContent?.trim() ??
-								''
+								'',
+							thumbnails: [row.querySelector('img')?.getAttribute('src') ?? '']
 						});
 					}
 					return products;
@@ -53,47 +54,6 @@ export const getProducts: GetProducts = async (code: string, maxItems, config) =
 			},
 			config
 		);
-		// const response = await axios.request(axiosReqConfig);
-		// if (response.status >= 400) {
-		// 	return {
-		// 		meta: {
-		// 			status: response.status,
-		// 			currentItemsDisplayed: 0,
-		// 			totalItems: 0,
-		// 			maxItemsPagination: 0,
-		// 			page: 0
-		// 		},
-		// 		products: []
-		// 	};
-		// }
-		//
-		// const data: ResponseSchema = await response.data;
-		//
-		// const { document } = parseHTML(data.template);
-		//
-		// const tableRows = document.querySelectorAll('.data.table > tbody > tr');
-		//
-		// const products: Product[] = [];
-		//
-		// for (let i = 0; i < tableRows.length; i++) {
-		// 	const row = tableRows[i];
-		// 	products.push({
-		// 		manufacturer: row.querySelector(':nth-child(3)')?.textContent?.trim() ?? '',
-		// 		manufacturer_code: row.querySelector(':nth-child(1)')?.textContent?.trim() ?? '',
-		// 		source_reference_code:
-		// 			row.getElementsByClassName('fg_additional_product_info')[0]?.textContent?.trim() ?? ''
-		// 	});
-		// }
-		// return {
-		// 	meta: {
-		// 		status: response.status,
-		// 		currentItemsDisplayed: products.length,
-		// 		totalItems: null,
-		// 		page: 1,
-		// 		maxItemsPagination: null
-		// 	},
-		// 	products: products
-		// };
 	} catch (err) {
 		error(500, `Filtration Group error: ${err}`);
 	}

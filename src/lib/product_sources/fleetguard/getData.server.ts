@@ -48,7 +48,8 @@ export const getProducts: GetProducts = async (code, maxItems, config) => {
 								products.push({
 									manufacturer: row.eqManufacturer ?? 'no manufacturer 🗿',
 									manufacturer_code: row.competitorPN ?? 'no manuf. code 🧐',
-									source_reference_code: row.crossReferenceName ?? 'no cross code 🧐'
+									source_reference_code: row.crossReferenceName ?? 'no cross code 🧐',
+									thumbnails: [row.imgUrl]
 								});
 							}
 						}
@@ -58,51 +59,6 @@ export const getProducts: GetProducts = async (code, maxItems, config) => {
 			},
 			config
 		);
-		// const response = await fetch('https://www.fleetguard.com/s/sfsites/aura', axiosReqConfig);
-		//
-		// if (!response.ok) {
-		// 	return {
-		// 		meta: {
-		// 			status: response.status,
-		// 			currentItemsDisplayed: 0,
-		// 			totalItems: 0,
-		// 			maxItemsPagination: null,
-		// 			page: 0
-		// 		},
-		// 		products: []
-		// 	};
-		// }
-		//
-		// const responseData: ResponseSchema = await response.json();
-		//
-		// const products: Product[] = [];
-		//
-		// if (responseData?.actions?.[2]?.returnValue?.returnValue?.productSearchData != undefined) {
-		// 	for (
-		// 		let i = 0;
-		// 		i < responseData?.actions?.[2]?.returnValue?.returnValue?.productSearchData?.length;
-		// 		i++
-		// 	) {
-		// 		const row = responseData?.actions?.[2]?.returnValue?.returnValue?.productSearchData?.[i];
-		// 		if (row != undefined) {
-		// 			products.push({
-		// 				manufacturer: row.eqManufacturer ?? '',
-		// 				manufacturer_code: row.competitorPN ?? '',
-		// 				source_reference_code: row.productName
-		// 			});
-		// 		}
-		// 	}
-		// }
-		// return {
-		// 	meta: {
-		// 		status: response.status,
-		// 		currentItemsDisplayed: products.length,
-		// 		totalItems: products.length,
-		// 		maxItemsPagination: null,
-		// 		page: 1
-		// 	},
-		// 	products: products
-		// };
 	} catch (err) {
 		console.error('Fleetguard error', err);
 		return {

@@ -1,6 +1,6 @@
 import type { GetProducts, GetNextProducts } from '../types';
 import { error, fail, type ActionFailure } from '@sveltejs/kit';
-import { getHtmlToProducts } from '../getHtmlToProductsData.server';
+import { getHtmlToProducts } from '$lib/product_sources/getHtmlToProductsData.server';
 import { headers } from '$lib/product_sources/constants';
 
 export async function getSession(

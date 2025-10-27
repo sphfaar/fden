@@ -252,11 +252,13 @@
 </svelte:head>
 <!-- <Toaster /> -->
 
-<nav
-	class="flex flex-col content-center justify-around border-b-2 border-primary/50 bg-primary/20 px-12 py-2"
->
+<nav class="flex justify-end gap-4 border-b-2 border-primary/50 bg-primary/5 px-12 pt-2 pb-1">
 	{#each enabledSourceCards.filter((s) => typeof s.sourceDescriptors.isLoggedIn === 'boolean') as sessionSC (sessionSC.sourceDescriptors.sourceID)}
-		<SrcSessionForm sourceDescriptors={sessionSC.sourceDescriptors} formActionData={form} />
+		<SrcSessionForm
+			sourceDescriptors={sessionSC.sourceDescriptors}
+			formActionData={form}
+			class="border border-primary/50"
+		/>
 	{/each}
 </nav>
 <main class="mx-auto w-full">
@@ -272,7 +274,7 @@
 				pattern={`[\\w.\\-\\/]{3,32}`}
 				oninput={checkOutdatedSourceData}
 				required
-				class="text-md col-span-3 w-full border px-2 text-lg font-bold placeholder-primary/50"
+				class="text-md col-span-3 w-full border px-2 text-lg font-bold placeholder-primary/50 ring-primary/50 ring-offset-background focus-visible:ring focus-visible:ring-offset-4 focus-visible:outline-none"
 			/>
 		</fieldset>
 

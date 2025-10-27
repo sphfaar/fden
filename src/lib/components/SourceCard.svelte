@@ -94,7 +94,6 @@
 		e.preventDefault();
 		if (sourceDescriptors.isLoggedIn === false) return;
 		isChecked = !isChecked;
-		// updateTable();
 		if (isDataLoaded) {
 			return;
 		} else {

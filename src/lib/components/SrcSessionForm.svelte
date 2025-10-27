@@ -1,15 +1,18 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { ActionData } from '../../routes/$types';
-	import { CircleX, LoaderCircle } from '@lucide/svelte';
+	import { LoaderCircle } from '@lucide/svelte';
 
 	let {
 		sourceDescriptors,
-		formActionData
+		formActionData,
+		class: className
 	}: {
 		sourceDescriptors: SourceDescriptorsLocal;
 		formActionData: ActionData;
+		class?: string;
 	} = $props();
+
 	let isLoading = $state(false);
 	let isDialogOpen = $state(false);
 	let isError = $state(false);
@@ -53,55 +56,49 @@
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && (isDialogOpen = false)} />
 
-<dialog class="bg-background" use:dialogAction>
-	<div class="p-4">
-		<form method="DIALOG" class="float-end">
-			<button onclick={() => (isDialogOpen = false)} formnovalidate><CircleX /></button>
-		</form>
-		<h4 class="text-xl font-bold">
-			<img
-				class="inline h-4 align-baseline"
-				src={sourceDescriptors.logo ?? sourceDescriptors.banner}
-				alt="source logo"
-			/>
-			{sourceDescriptors.name} Session request
-		</h4>
-		<p class="my-5">Session saved as cookies on this device</p>
-		<form
-			method="POST"
-			action="?/createSrcSession"
-			onsubmit={() => (isLoading = true)}
-			class="grid grid-cols-4 grid-rows-3 items-center gap-4 py-4"
-			use:enhance
+<dialog class="border border-primary bg-black p-4 text-primary" use:dialogAction>
+	<form method="DIALOG" class="float-end">
+		<button class="btn-esc cursor-pointer" onclick={() => (isDialogOpen = false)} formnovalidate
+			>esc</button
 		>
-			<input type="checkbox" name="sourceID" checked value={sourceDescriptors.sourceID} hidden />
-			<label for="username" class="text-center">username</label>
-			<input
-				name="username"
-				id="username"
-				class="col-span-3"
-				required
-				placeholder="username/email"
-			/>
-			<label for="password" class="text-center">password</label>
-			<input name="password" id="password" type="password" class="col-span-3 mb-3" required />
-			<button
-				class="col-span-4 disabled:bg-background disabled:opacity-100"
-				type="submit"
-				disabled={isLoading}
-				>{#if isLoading}<LoaderCircle class="animate-spin" />{:else}Submit{/if}</button
+	</form>
+	<h4 class="text-xl font-bold">
+		<img
+			class="inline h-4 align-baseline"
+			src={sourceDescriptors.logo ?? sourceDescriptors.banner}
+			alt="source logo"
+		/>
+		{sourceDescriptors.name} Session request
+	</h4>
+	<p class="my-5">Session saved as cookies on this device</p>
+	<form
+		method="POST"
+		action="?/createSrcSession"
+		onsubmit={() => (isLoading = true)}
+		class="grid grid-cols-4 grid-rows-3 items-center gap-4 py-4"
+		use:enhance
+	>
+		<input type="checkbox" name="sourceID" checked value={sourceDescriptors.sourceID} hidden />
+		<label for="username" class="text-center">username</label>
+		<input name="username" id="username" class="col-span-3" required placeholder="username/email" />
+		<label for="password" class="text-center">password</label>
+		<input name="password" id="password" type="password" class="col-span-3 mb-3" required />
+		<button
+			class="col-span-4 disabled:bg-background disabled:opacity-100"
+			type="submit"
+			disabled={isLoading}
+			>{#if isLoading}<LoaderCircle class="animate-spin" />{:else}Submit{/if}</button
+		>
+		{#if isError}
+			<output
+				class="col-span-4 mt-2 text-center text-red-600"
+				name="request_status"
+				for="username password"
 			>
-			{#if isError}
-				<output
-					class="col-span-4 mt-2 text-center text-red-600"
-					name="request_status"
-					for="username password"
-				>
-					Auth Error
-				</output>
-			{/if}
-		</form>
-	</div>
+				Auth Error
+			</output>
+		{/if}
+	</form>
 </dialog>
 
 <form action="?/terminateSrcSession" method="POST" use:enhance class="w-fit">
@@ -113,7 +110,10 @@
 				isDialogOpen = true;
 			}
 		}}
-		class="focus-visible:ring-ring inline-flex h-6 cursor-pointer items-center justify-center gap-2 bg-background px-4 py-2 text-sm font-medium whitespace-nowrap ring-offset-background transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0"
+		class={[
+			className,
+			'inline-flex h-6 cursor-pointer items-center justify-center gap-2 bg-background px-4 py-2 text-sm font-medium whitespace-nowrap ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none'
+		]}
 	>
 		<img
 			src={sourceDescriptors.banner ?? sourceDescriptors.logo}
@@ -127,5 +127,26 @@
 	::backdrop {
 		background-image: repeating-linear-gradient(-45deg, transparent 0 80px, black 80px 160px);
 		opacity: 0.3;
+	}
+	.btn-esc {
+		padding: 2px 4px;
+		background-color: var(--color-background);
+		border-radius: 3px;
+		border: 1px solid var(--color-primary);
+		box-shadow: 0 -2px 0 0 var(--color-primary) inset;
+		color: var(--color-primary);
+		display: inline-block;
+		font-size: 0.85em;
+		font-weight: bold;
+		line-height: 1;
+		white-space: nowrap;
+		transition-property: transform padding box-shadow;
+		transition-duration: 150ms;
+		transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+	}
+	.btn-esc:active {
+		transform: translateY(1px);
+		box-shadow: none;
+		padding: 1px 4px;
 	}
 </style>

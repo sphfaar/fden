@@ -47,7 +47,7 @@ export const getProducts: GetProducts = async (code, maxItems, config) => {
 							if (row != undefined) {
 								products.push({
 									manufacturer: row.eqManufacturer ?? 'no manufacturer 🗿',
-									manufacturer_code: row.competitorPN ?? 'no manuf. code 🧐',
+									manufacturer_code: row.productName ?? 'no manuf. code 🧐',
 									source_reference_code: row.crossReferenceName ?? 'no cross code 🧐',
 									thumbnails: [row.imgUrl]
 								});

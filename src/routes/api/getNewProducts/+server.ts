@@ -25,7 +25,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		maxItems,
 		{ showPerfReqProxyToSource: true },
 		1,
-		maybeSessionToken
+		{ sessionToken: maybeSessionToken }
 	);
 	if (!productsData) error(500, 'error fetching products getting products on getNewProducts API');
 

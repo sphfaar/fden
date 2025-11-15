@@ -51,7 +51,7 @@ export const load: PageServerLoad = ({ url, locals }) => {
 						1000,
 						{ showPerfReqProxyToSource: true },
 						1,
-						maybeSessionToken ?? undefined
+						{ sessionToken: maybeSessionToken ?? undefined }
 					)
 				);
 			});

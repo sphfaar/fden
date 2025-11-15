@@ -33,7 +33,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		maxItems,
 		{ showPerfReqProxyToSource: true },
 		meta.page,
-		maybeSessionToken
+		{
+			sessionToken: maybeSessionToken
+		}
 	);
 
 	if (!productsData) error(500, 'error fetching products getting products on getNextProducts API');

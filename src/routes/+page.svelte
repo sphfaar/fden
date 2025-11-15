@@ -252,7 +252,7 @@
 </svelte:head>
 <!-- <Toaster /> -->
 
-<nav class="flex justify-end gap-4 border-b-2 border-primary/50 bg-primary/5 px-12 pt-2 pb-1">
+<nav class="flex justify-end gap-4 border-b border-primary/50 bg-primary/5 px-12 pt-2 pb-1">
 	{#each enabledSourceCards.filter((s) => typeof s.sourceDescriptors.isLoggedIn === 'boolean') as sessionSC (sessionSC.sourceDescriptors.sourceID)}
 		<SrcSessionForm
 			sourceDescriptors={sessionSC.sourceDescriptors}
@@ -263,7 +263,9 @@
 </nav>
 <main class="mx-auto w-full">
 	<form method="GET" class="mb-4 flex flex-col content-center justify-around pb-5">
-		<fieldset class="flex w-full gap-2 border-b border-primary/50 px-8 py-7 lg:px-12">
+		<fieldset
+			class="bg-grid flex w-full gap-2 border-b border-primary/50 bg-primary/10 px-8 py-7 lg:px-12"
+		>
 			<input
 				name="q"
 				bind:value={code}
@@ -274,7 +276,7 @@
 				pattern={`[\\w.\\-\\/]{3,32}`}
 				oninput={checkOutdatedSourceData}
 				required
-				class="text-md col-span-3 w-full border px-2 text-lg font-bold placeholder-primary/50 ring-primary/50 ring-offset-background focus-visible:ring focus-visible:ring-offset-4 focus-visible:outline-none"
+				class="text-md col-span-3 w-full border bg-background px-2 text-lg font-bold placeholder-primary/50 ring-primary/50 ring-offset-background focus-visible:ring focus-visible:ring-offset-4 focus-visible:outline-none"
 			/>
 		</fieldset>
 
@@ -364,3 +366,13 @@
 		{/if}
 	</section>
 </main>
+
+<style>
+	.bg-grid {
+		--line-mix: color-mix(in oklch, transparent, var(--color-primary) 3%) 1px;
+		background-image:
+			linear-gradient(to right, var(--line-mix), transparent 1px),
+			linear-gradient(to bottom, var(--line-mix), transparent 1px);
+		background-size: 10px 10px;
+	}
+</style>

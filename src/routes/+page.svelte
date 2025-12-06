@@ -43,7 +43,6 @@
 	let isLoadingMoreProductsOnTable = $state(false);
 
 	const prodsFromSrcPromises: ProductsFromSourcePromises = new SvelteMap(); //products will be added here also by APIs
-
 	const prodsFromSrcFulfilled: ProductsFromSources = new SvelteMap();
 
 	let productsOfTable: ProductOfTable[] = $derived.by(() => {
@@ -69,20 +68,7 @@
 		return pot;
 	});
 
-	let enabledSourceCards: EnabledSourceCard[] = $state(
-		data.newSrcsDescriptors.map((srcDesc) => {
-			const isDataSSRPreloaded: boolean =
-				(page.url.searchParams.get(srcDesc?.sourceID ?? '') === '1' ? true : false) &&
-				srcDesc.isLoggedIn !== false; //is Data loaded in SSR from URL params
-			return {
-				sourceDescriptors: srcDesc,
-				isChecked: isDataSSRPreloaded,
-				isDataLoaded: isDataSSRPreloaded,
-				isMouseOverScrapingType: false,
-				lastCodeQuery: isDataSSRPreloaded ? code : null
-			};
-		})
-	);
+	let enabledSourceCards: EnabledSourceCard[] = $state([]);
 
 	let sourceCardsMetadataPromises = $derived(
 		new Map<string, Promise<MetaData> | undefined>(
@@ -215,7 +201,6 @@
 			productsData: await prodsDataPromise
 		});
 		isLoadingTable = false;
-		// updateProductsOfTable(prodsFromSrcPromises, prodsFromSrcFulfilled);
 	}
 
 	$effect(() => {
@@ -233,6 +218,22 @@
 	$effect(() => {
 		prodsFromSrcPromises.forEach((prodsFromSrcPromise, srcDescs) => {
 			addFulfilledProdsToSrc(srcDescs, prodsFromSrcPromise);
+		});
+	});
+
+	$effect.pre(() => {
+		const descs = data.newSrcsDescriptors;
+		enabledSourceCards = descs.map((srcDesc) => {
+			const isDataSSRPreloaded: boolean =
+				(page.url.searchParams.get(srcDesc?.sourceID ?? '') === '1' ? true : false) &&
+				srcDesc.isLoggedIn !== false; //is Data loaded in SSR from URL params
+			return {
+				sourceDescriptors: srcDesc,
+				isChecked: isDataSSRPreloaded,
+				isDataLoaded: isDataSSRPreloaded,
+				isMouseOverScrapingType: false,
+				lastCodeQuery: isDataSSRPreloaded ? code : null
+			};
 		});
 	});
 
@@ -318,7 +319,7 @@
 		</fieldset>
 
 		<fieldset disabled={!codeRgx.test(code)} class="disabled:muted relative z-20 flex font-medium">
-			<ButtonsByScrapingType bind:enabledSourceCards />
+			<ButtonsByScrapingType {enabledSourceCards} />
 		</fieldset>
 		<fieldset
 			disabled={!codeRgx.test(code)}

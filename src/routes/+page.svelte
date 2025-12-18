@@ -15,6 +15,7 @@
 	import { scrapingTypeColors } from '$lib/scarpingTypes';
 	import { SvelteMap } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
+	import { Search } from '@lucide/svelte';
 
 	const [send, receive] = crossfade({
 		duration: (d) => Math.sqrt(d * 200),
@@ -253,20 +254,21 @@
 </svelte:head>
 <!-- <Toaster /> -->
 
-<nav class="flex justify-end gap-4 border-b border-primary/50 bg-primary/5 px-12 pt-2 pb-1">
+<nav class="flex justify-end gap-4 border-b border-secondary/5 bg-secondary/5 px-12 pt-2 pb-1">
 	{#each enabledSourceCards.filter((s) => typeof s.sourceDescriptors.isLoggedIn === 'boolean') as sessionSC (sessionSC.sourceDescriptors.sourceID)}
 		<SrcSessionForm
 			sourceDescriptors={sessionSC.sourceDescriptors}
 			formActionData={form}
-			class="border border-primary/50"
+			class="border border-secondary/20 text-secondary/60"
 		/>
 	{/each}
 </nav>
-<main class="mx-auto w-full">
+<main class="mx-auto w-full bg-primary/5 pt-12">
 	<form method="GET" class="mb-4 flex flex-col content-center justify-around pb-5">
 		<fieldset
-			class="bg-grid flex w-full gap-2 border-b border-primary/50 bg-primary/10 px-8 py-7 lg:px-12"
+			class="bg-grid flex w-full items-center gap-4 border-y border-primary/50 bg-primary/10 px-8 pt-4 pb-6 lg:px-12"
 		>
+			<legend class="px-2 text-xs opacity-80">cross reference</legend>
 			<input
 				name="q"
 				bind:value={code}
@@ -277,8 +279,14 @@
 				pattern={`[\\w.\\-\\/]{3,32}`}
 				oninput={checkOutdatedSourceData}
 				required
-				class="text-md col-span-3 w-full border bg-background px-2 text-lg font-bold placeholder-primary/50 ring-primary/50 ring-offset-background focus-visible:ring focus-visible:ring-offset-4 focus-visible:outline-none"
+				class="text-md w-full border border-primary/80 bg-background px-2 text-lg font-bold placeholder-primary/50 ring-primary/50 ring-offset-background focus-visible:ring focus-visible:ring-offset-4 focus-visible:outline-none"
 			/>
+			<button
+				type="submit"
+				class="h-full cursor-pointer border border-primary/80 px-2 transition-colors hover:bg-primary/80 hover:text-background active:border-primary active:bg-primary active:text-background"
+			>
+				<Search size={20} />
+			</button>
 		</fieldset>
 
 		<fieldset
@@ -354,7 +362,7 @@
 		</fieldset>
 	</form>
 
-	<section class="px-4 lg:px-12">
+	<section class="bg-se px-4 pb-4 lg:px-12 lg:pb-12">
 		{#if isLoadingTable}
 			loading
 		{/if}

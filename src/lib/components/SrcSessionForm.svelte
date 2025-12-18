@@ -56,49 +56,55 @@
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && (isDialogOpen = false)} />
 
-<dialog class="border border-primary bg-black p-4 text-primary" use:dialogAction>
-	<form method="DIALOG" class="float-end">
-		<button class="btn-esc cursor-pointer" onclick={() => (isDialogOpen = false)} formnovalidate
-			>esc</button
-		>
-	</form>
-	<h4 class="text-xl font-bold">
-		<img
-			class="inline h-4 align-baseline"
-			src={sourceDescriptors.logo ?? sourceDescriptors.banner}
-			alt="source logo"
-		/>
-		{sourceDescriptors.name} Session request
-	</h4>
-	<p class="my-5">Session saved as cookies on this device</p>
+<dialog
+	class="m-auto w-fit border border-primary/40 bg-background/80 px-6 pt-6 text-primary backdrop-blur-xl"
+	use:dialogAction
+>
+	<div class="mb-4 flex gap-10">
+		<h4 class="text-xl font-bold text-nowrap">
+			<img
+				class="inline h-4 align-baseline"
+				src={sourceDescriptors.logo ?? sourceDescriptors.banner}
+				alt="source logo"
+			/>
+			{sourceDescriptors.name} session request
+		</h4>
+		<form method="DIALOG" class="float-end">
+			<button class="btn-esc cursor-pointer" onclick={() => (isDialogOpen = false)} formnovalidate
+				>esc</button
+			>
+		</form>
+	</div>
 	<form
 		method="POST"
 		action="?/createSrcSession"
 		onsubmit={() => (isLoading = true)}
-		class="grid grid-cols-4 grid-rows-3 items-center gap-4 py-4"
+		class="flex flex-col items-stretch gap-4 py-4"
 		use:enhance
 	>
 		<input type="checkbox" name="sourceID" checked value={sourceDescriptors.sourceID} hidden />
-		<label for="username" class="text-center">username</label>
-		<input name="username" id="username" class="col-span-3" required placeholder="username/email" />
-		<label for="password" class="text-center">password</label>
-		<input name="password" id="password" type="password" class="col-span-3 mb-3" required />
+		<input name="username" placeholder="username/email" class="border border-primary/30" required />
+		<input
+			name="password"
+			type="password"
+			placeholder="password"
+			class="mb-3 border border-primary/30"
+			required
+		/>
 		<button
-			class="col-span-4 disabled:bg-background disabled:opacity-100"
+			class="mt-3 cursor-pointer border border-primary/70 hover:bg-primary/70 hover:text-background active:bg-primary active:text-background disabled:bg-background disabled:opacity-100"
 			type="submit"
 			disabled={isLoading}
 			>{#if isLoading}<LoaderCircle class="animate-spin" />{:else}Submit{/if}</button
 		>
 		{#if isError}
-			<output
-				class="col-span-4 mt-2 text-center text-red-600"
-				name="request_status"
-				for="username password"
-			>
+			<output class="mt-2 text-center text-red-600" name="request_status" for="username password">
 				Auth Error
 			</output>
 		{/if}
 	</form>
+
+	<p class="mb-4 text-center text-xs opacity-80">session saved locally as cookie</p>
 </dialog>
 
 <form action="?/terminateSrcSession" method="POST" use:enhance class="w-fit">

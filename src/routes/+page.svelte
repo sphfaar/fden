@@ -263,7 +263,7 @@
 		/>
 	{/each}
 </nav>
-<main class="mx-auto w-full bg-primary/5 pt-12">
+<main class="mx-auto w-full bg-primary/5 pt-6">
 	<form method="GET" class="mb-4 flex flex-col content-center justify-around pb-5">
 		<fieldset
 			class="bg-grid flex w-full items-center gap-4 border-y border-primary/50 bg-primary/10 px-8 pt-4 pb-6 lg:px-12"
@@ -279,7 +279,7 @@
 				pattern={`[\\w.\\-\\/]{3,32}`}
 				oninput={checkOutdatedSourceData}
 				required
-				class="text-md w-full border border-primary/80 bg-background px-2 text-lg font-bold placeholder-primary/50 ring-primary/50 ring-offset-background focus-visible:ring focus-visible:ring-offset-4 focus-visible:outline-none"
+				class="text-md w-full border border-primary/80 bg-background px-2 text-lg font-bold placeholder-primary/50 ring-primary/50 ring-offset-background focus-visible:ring focus-visible:ring-offset-8 focus-visible:outline-none"
 			/>
 			<button
 				type="submit"
@@ -378,7 +378,7 @@
 
 <style>
 	.bg-grid {
-		--line-mix: color-mix(in oklch, transparent, var(--color-primary) 3%) 1px;
+		--line-mix: color-mix(in oklch, transparent, var(--color-primary) 6%) 2px;
 		background-image:
 			linear-gradient(to right, var(--line-mix), transparent 1px),
 			linear-gradient(to bottom, var(--line-mix), transparent 1px);

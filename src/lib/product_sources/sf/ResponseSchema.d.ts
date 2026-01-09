@@ -6,7 +6,7 @@ export default interface SfSchema {
 }
 
 interface Payload {
-	readonly items: ItemElement[];
+	readonly data: ItemElement[];
 	readonly itemsTotal: number;
 }
 

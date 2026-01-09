@@ -37,8 +37,8 @@ export const getProducts: GetProducts = (code, maxItems, config, page = 1) => {
 			{
 				rowsIterator: (resData) => {
 					const products: Product[] = [];
-					for (let i = 0; i < resData.payload.items.length; i++) {
-						const row = resData.payload.items[i];
+					for (let i = 0; i < resData.payload.data.length; i++) {
+						const row = resData.payload.data[i];
 						products.push({
 							manufacturer: row.brand,
 							manufacturer_code: row.originalNumber,

@@ -5,19 +5,54 @@
 	let { products }: { products: ProductOfTable[] } = $props();
 
 	let searchFilterVal = $state('');
-	let filter: string | null = $derived(searchFilterVal.length > 0 ? searchFilterVal.trim() : null);
+	let filter: string | null = $derived(
+		searchFilterVal.length > 0 ? searchFilterVal.trim() : null
+	);
+	// Compute lowercase version of filter for case-insensitive searching
+	let filterLower: string | null = $derived(filter ? filter.toLowerCase() : null);
 
 	let productsFiltered = $derived<ProductOfTable[]>(
 		filter
 			? products.filter(
 					(p) =>
-						p.crossCode && (p.crossCode.includes(filter) || p.manufacturerCode.includes(filter))
+						p.crossCode &&
+						// Use lowercase comparisons for case-insensitive filtering
+						(p.crossCode.toLowerCase().includes(filterLower!) ||
+							p.manufacturerCode.toLowerCase().includes(filterLower!))
 				)
 			: products
 	);
 
 	let thumbnailsInProxyFallback = new SvelteSet<string>();
 	let thumbnailsHidden = new SvelteSet<string>();
+
+	interface HighlightPart {
+		text: string;
+		isHighlight: boolean;
+	}
+
+	function highlight(original: string, filter: string): HighlightPart[] {
+		if (!filter) return [{ text: original, isHighlight: false }];
+
+		const parts: HighlightPart[] = [];
+		//  Escape special regex characters in filter to treat it as literal
+		const escapedFilter = filter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		const regex = new RegExp(escapedFilter, 'gi');
+		let lastIndex = 0;
+		let match;
+		while ((match = regex.exec(original)) !== null) {
+			if (match.index > lastIndex) {
+				parts.push({ text: original.slice(lastIndex, match.index), isHighlight: false });
+			}
+			// Use the matched substring with its original casing for the highlight
+			parts.push({ text: match[0], isHighlight: true });
+			lastIndex = match.index + match[0].length;
+		}
+		if (lastIndex < original.length) {
+			parts.push({ text: original.slice(lastIndex), isHighlight: false });
+		}
+		return parts;
+	}
 </script>
 
 <div class="flex w-full items-center gap-2 border border-primary/50 px-2 py-1">
@@ -49,33 +84,31 @@
 			>
 		</tr>
 	</thead>
-	{#snippet filterHighlight(strings: string[], filter: string)}
-		{#each strings as str, i (i)}
-			{#if i < strings.length - 1}
-				{str}<span class="text-secondary text-shadow-secondary text-shadow-xs">{filter}</span>
+	{#snippet filterHighlight(str: string, filter: string)}
+		{#each highlight(str, filter) as part (part)}
+			{#if part.isHighlight}
+				<span class="text-secondary text-shadow-secondary text-shadow-xs">{part.text}</span>
 			{:else}
-				{str}
+				{part.text}
 			{/if}
 		{/each}
 	{/snippet}
 	<tbody>
 		{#each productsFiltered as product, i (i)}
-			{@const manCodeSplitted = filter ? product.manufacturerCode.split(filter) : null}
-			{@const crossCodeSplitted = filter ? product.crossCode.split(filter) : null}
 			<tr class=" {i % 2 === 0 ? 'bg-secondary/5' : ''} data-[state=selected]:bg-muted">
 				<td class="p-4 py-2 align-middle [&:has([role=checkbox])]:pr-0">
 					<img class="h-6 pl-4" src={product.source.image} alt="s_img" />
 				</td>
 				<td class="p-4 py-2 align-middle [&:has([role=checkbox])]:pr-0">
-					{#if manCodeSplitted && filter}
-						{@render filterHighlight(manCodeSplitted, filter)}
+					{#if filter}
+						{@render filterHighlight(product.manufacturerCode, filter)}
 					{:else}
 						{product.manufacturerCode}
 					{/if}
 				</td>
 				<td class="p-4 py-2 align-middle [&:has([role=checkbox])]:pr-0">
-					{#if crossCodeSplitted && filter}
-						{@render filterHighlight(crossCodeSplitted, filter)}
+					{#if filter}
+						{@render filterHighlight(product.crossCode, filter)}
 					{:else}
 						{product.crossCode}
 					{/if}
@@ -99,7 +132,8 @@
 										class="size-8 object-cover"
 										onerror={() => {
 											// if url proxy already attempted then hide
-											if (thumbnailsInProxyFallback.has(url)) thumbnailsHidden.add(url);
+											if (thumbnailsInProxyFallback.has(url))
+												thumbnailsHidden.add(url);
 											else thumbnailsInProxyFallback.add(url);
 										}}
 									/>
@@ -111,7 +145,8 @@
 				<td class="p-4 py-2 align-middle [&:has([role=checkbox])]:pr-0">
 					{#if product.detailsUrl}
 						<!-- eslint-disable svelte/no-navigation-without-resolve -->
-						<a href={product.detailsUrl} target="_blank" rel="noopener noreferrer">🔗</a>
+						<a href={product.detailsUrl} target="_blank" rel="noopener noreferrer">🔗</a
+						>
 					{/if}
 				</td>
 			</tr>

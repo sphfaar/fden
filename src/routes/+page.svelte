@@ -92,8 +92,9 @@
 	// let tableWorker: Worker | null = null;
 
 	function isSourceCardChecked(sourceID: string) {
-		return enabledSourceCards.find((enabledSC) => enabledSC.sourceDescriptors.sourceID === sourceID)
-			?.isChecked;
+		return enabledSourceCards.find(
+			(enabledSC) => enabledSC.sourceDescriptors.sourceID === sourceID
+		)?.isChecked;
 	}
 
 	// async function initTableWorker() {
@@ -105,9 +106,13 @@
 	// }
 
 	async function loadInitialProducts(sourceID: string): Promise<void> {
-		const sourceDescs = data.newSrcsDescriptors.find((srcDesc) => srcDesc.sourceID === sourceID);
+		const sourceDescs = data.newSrcsDescriptors.find(
+			(srcDesc) => srcDesc.sourceID === sourceID
+		);
 		isLoadingMoreProductsOnTable = true;
-		const enabledSC = enabledSourceCards.find((src) => src.sourceDescriptors.sourceID === sourceID);
+		const enabledSC = enabledSourceCards.find(
+			(src) => src.sourceDescriptors.sourceID === sourceID
+		);
 		if (enabledSC) {
 			enabledSC.lastCodeQuery = code;
 			enabledSC.isDataLoaded = true;
@@ -137,7 +142,9 @@
 	async function loadNextProducts(sourceID: string) {
 		if (!prodsFromSrcPromises) return;
 		isLoadingMoreProductsOnTable = true;
-		const srcDescs = prodsFromSrcPromises.keys().find((srcDescs) => srcDescs.sourceID === sourceID);
+		const srcDescs = prodsFromSrcPromises
+			.keys()
+			.find((srcDescs) => srcDescs.sourceID === sourceID);
 		const oldScProdsData: ProductsData | undefined = srcDescs
 			? await prodsFromSrcPromises.get(srcDescs)
 			: undefined;
@@ -268,7 +275,7 @@
 		<fieldset
 			class="bg-grid flex w-full items-center gap-4 border-y border-primary/50 bg-primary/10 px-8 pt-4 pb-6 lg:px-12"
 		>
-			<legend class="px-2 text-xs opacity-80">cross reference</legend>
+			<legend class="px-1 text-xs opacity-80">search</legend>
 			<input
 				name="q"
 				bind:value={code}
@@ -301,8 +308,8 @@
 					class={[
 						'flex grow flex-col gap-px bg-background transition-shadow',
 						disabledSC.isMouseOverScrapingType
-							? scrapingTypeColors.get(disabledSC.sourceDescriptors.scrapingType)?.style.shadow
-									.bottom
+							? scrapingTypeColors.get(disabledSC.sourceDescriptors.scrapingType)
+									?.style.shadow.bottom
 							: 'bg-opacity-100'
 					]}
 					in:receive={{ key: disabledSC.sourceDescriptors.sourceID }}
@@ -319,14 +326,20 @@
 						lastCodeQuery={disabledSC.lastCodeQuery}
 					/>
 					<span
-						class="h-ps {scrapingTypeColors.get(disabledSC.sourceDescriptors.scrapingType)?.style
-							.bg} {disabledSC.sourceDescriptors.isLoggedIn === false ? 'opacity-20' : ''}"
+						class="h-ps {scrapingTypeColors.get(
+							disabledSC.sourceDescriptors.scrapingType
+						)?.style.bg} {disabledSC.sourceDescriptors.isLoggedIn === false
+							? 'opacity-20'
+							: ''}"
 					></span>
 				</div>
 			{/each}
 		</fieldset>
 
-		<fieldset disabled={!codeRgx.test(code)} class="disabled:muted relative z-20 flex font-medium">
+		<fieldset
+			disabled={!codeRgx.test(code)}
+			class="disabled:muted relative z-20 flex font-medium"
+		>
 			<ButtonsByScrapingType {enabledSourceCards} />
 		</fieldset>
 		<fieldset
@@ -341,7 +354,8 @@
 					class={[
 						'transition-shadow',
 						enabledSC.isMouseOverScrapingType
-							? scrapingTypeColors.get(enabledSC.sourceDescriptors.scrapingType)?.style.shadow.top
+							? scrapingTypeColors.get(enabledSC.sourceDescriptors.scrapingType)
+									?.style.shadow.top
 							: 'bg-background'
 					]}
 					in:receive={{ key: enabledSC.sourceDescriptors.sourceID }}

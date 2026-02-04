@@ -43,7 +43,8 @@ export const load: PageServerLoad = ({ url, locals }) => {
 			})
 			.forEach((srcDescriptors) => {
 				const maybeSessionToken: string | null =
-					srcSessionTokens.find((token) => token.name === srcDescriptors.sourceID)?.name ?? null;
+					srcSessionTokens.find((token) => token.name === srcDescriptors.sourceID)
+						?.name ?? null;
 				prodsFromSrcPromises.set(
 					srcDescriptors,
 					sourcesGetters?.[srcDescriptors.sourceID].getProducts(

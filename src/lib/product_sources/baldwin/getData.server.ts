@@ -53,7 +53,7 @@ export const getProducts: GetProducts = async (
 
 	try {
 		// NOTE: Add a small delay before requests to simulate human behavior and avoid rate limits (e.g., 403 after "some time" from too many fast queries).
-		await delay(500); // Adjust based on testing; e.g., 1000ms for production.
+		await delay(600); // Adjust based on testing; e.g., 1000ms for production.
 
 		// NOTE: Perform an initial GET to the Referer page to establish a session and fetch required cookies (e.g., ApplicationGatewayAffinity, ak_bmsc). This mimics browser behavior and bypasses bot detection.
 		// If Akamai requires JS (rarely in initial GET), this may fail—consider a headless browser like Puppeteer (but not in Cloudflare Workers; use external service).
@@ -141,7 +141,9 @@ export const getNextProducts: GetNextProducts = () => null;
 // Function to convert the input string to the format of images urls
 function convertProductString(input?: string): string | null {
 	if (!input) {
-		console.warn('convertProductString called with missing/empty input; returning empty string');
+		console.warn(
+			'convertProductString called with missing/empty input; returning empty string'
+		);
 		return null;
 	}
 	// NOTE: Remove any spaces from the input to handle potential whitespace in URLs or data (e.g., from API variations); uses regex for global replacement

@@ -38,7 +38,9 @@ export async function getJsonToProducts<T>(
 			meta: {
 				status: response.status,
 				currentItemsDisplayed: products.length,
-				totalItems: parsingFunctions.totalItems ? parsingFunctions.totalItems(responseData) : null,
+				totalItems: parsingFunctions.totalItems
+					? parsingFunctions.totalItems(responseData)
+					: null,
 				page: page ?? 1,
 				pages: parsingFunctions.nPages ? parsingFunctions.nPages(responseData) : undefined,
 				maxItemsPagination:

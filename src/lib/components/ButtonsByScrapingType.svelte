@@ -34,7 +34,8 @@
 		enabled: enabledSourceCards.filter(
 			(sc) => sc.sourceDescriptors.isLoggedIn !== false && sc.isChecked
 		).length,
-		maxEnabled: enabledSourceCards.filter((sc) => sc.sourceDescriptors.isLoggedIn !== false).length
+		maxEnabled: enabledSourceCards.filter((sc) => sc.sourceDescriptors.isLoggedIn !== false)
+			.length
 	});
 
 	let nEnabledSourceCardsByType = $derived(
@@ -141,7 +142,9 @@
 		class="relative min-h-7 w-3/5 max-w-32 min-w-fit overflow-hidden border border-white text-neutral-300 shadow-[-5px_0_0_-3px,5px_0_0_-3px] shadow-black transition-colors hover:text-neutral-50"
 		onclick={() => {
 			enabledSourceCards.forEach((sc) =>
-				sc.sourceDescriptors.isLoggedIn !== false ? (sc.isChecked = true) : (sc.isChecked = false)
+				sc.sourceDescriptors.isLoggedIn !== false
+					? (sc.isChecked = true)
+					: (sc.isChecked = false)
 			);
 		}}
 		onmouseenter={() =>
@@ -150,7 +153,8 @@
 					? (sc.isMouseOverScrapingType = true)
 					: (sc.isMouseOverScrapingType = false)
 			)}
-		onmouseleave={() => enabledSourceCards.forEach((sc) => (sc.isMouseOverScrapingType = false))}
+		onmouseleave={() =>
+			enabledSourceCards.forEach((sc) => (sc.isMouseOverScrapingType = false))}
 	>
 		<svg
 			class="absolute top-1/2 -right-1 -left-1 -translate-y-1/2 rotate-90 transform bg-black"
@@ -169,7 +173,8 @@
 
 		<span
 			class="hover:bg-opacity-80 relative m-auto flex size-[calc(100%-0.3rem)] flex-initial items-center justify-center gap-2 bg-black px-2"
-			>All<span>{enabledSourceCardsAll.enabled}/{enabledSourceCardsAll.maxEnabled}</span></span
+			>All<span>{enabledSourceCardsAll.enabled}/{enabledSourceCardsAll.maxEnabled}</span
+			></span
 		></button
 	>
 

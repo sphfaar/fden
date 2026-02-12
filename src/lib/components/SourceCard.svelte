@@ -179,7 +179,8 @@
 				<samp class="mt-2 ml-4 pr-2 text-end text-lg">
 					{#if !errorMessage}
 						{#if metaData?.maxItemsPagination && metaData?.totalItems}
-							<span class="font-bold">{metaData.currentItemsDisplayed}</span><span class="text-xs"
+							<span class="font-bold">{metaData.currentItemsDisplayed}</span><span
+								class="text-xs"
 								>/{metaData.totalItems}
 							</span>
 						{:else}
@@ -198,7 +199,9 @@
 
 				<!-- Progress to FULL -->
 				{@render progressToFULL(
-					metaData.pages && nextLoadStatus !== 'full' ? metaData.page / metaData.pages : 1,
+					metaData.pages && nextLoadStatus !== 'full'
+						? metaData.page / metaData.pages
+						: 1,
 					metaData.pages
 						? { fill: 'var(--color-secondary)' }
 						: { stroke: 'var(--color-secondary)' },
@@ -208,7 +211,9 @@
 				<!-- Loading More Button -->
 				{@render buttonLoadMore(metaData ?? undefined)}
 			{:else if errorMessage}
-				<p class="col-span-1 row-span-2 ml-4 h-7 overflow-auto text-left text-xs text-error">
+				<p
+					class="col-span-1 row-span-2 ml-4 h-7 overflow-auto text-left text-xs text-error"
+				>
 					{errorMessage}
 				</p>
 				{@render progressToFULL(
@@ -223,7 +228,8 @@
 			<span
 				class="col-span-1 mt-[0.08rem] inline-flex items-center gap-0 self-start text-[0.55rem] font-black {errorMessage
 					? 'text-inherit'
-					: 'text-secondary'}"><Antenna class="mx-0.5 inline h-2 w-2" />{metaData?.status}</span
+					: 'text-secondary'}"
+				><Antenna class="mx-0.5 inline h-2 w-2" />{metaData?.status}</span
 			>
 			<span
 				class="w-11/12 text-start text-[0.55rem] font-medium {errorMessage
@@ -232,8 +238,8 @@
 			>
 				{#if isDataLoaded}
 					<span class="perf-text inline-flex items-center text-nowrap"
-						><ArrowRightLeft class="mx-0.5 inline h-2 w-2" />{metaData?.performanceTimings
-							?.proxyToSource} ms</span
+						><ArrowRightLeft class="mx-0.5 inline h-2 w-2" />{metaData
+							?.performanceTimings?.proxyToSource} ms</span
 					>
 				{:else if lastCodeQuery}
 					({lastCodeQuery}) ━━ OLD ━━
@@ -365,7 +371,11 @@
 {/snippet}
 
 {#snippet loader(enabled: boolean)}
-	<p class="col-span-2 row-span-2 mb-2 {enabled ? 'mt-1' : 'mt-0.5'} text-muted-foreground text-xs">
+	<p
+		class="col-span-2 row-span-2 mb-2 {enabled
+			? 'mt-1'
+			: 'mt-0.5'} text-muted-foreground text-xs"
+	>
 		(loading)
 	</p>
 	<LoaderCircle class="row-span-2 animate-spin" />

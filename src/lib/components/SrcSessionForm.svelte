@@ -70,8 +70,10 @@
 			{sourceDescriptors.name} session request
 		</h4>
 		<form method="DIALOG" class="float-end">
-			<button class="btn-esc cursor-pointer" onclick={() => (isDialogOpen = false)} formnovalidate
-				>esc</button
+			<button
+				class="btn-esc cursor-pointer"
+				onclick={() => (isDialogOpen = false)}
+				formnovalidate>esc</button
 			>
 		</form>
 	</div>
@@ -83,7 +85,12 @@
 		use:enhance
 	>
 		<input type="checkbox" name="sourceID" checked value={sourceDescriptors.sourceID} hidden />
-		<input name="username" placeholder="username/email" class="border border-primary/30" required />
+		<input
+			name="username"
+			placeholder="username/email"
+			class="border border-primary/30"
+			required
+		/>
 		<input
 			name="password"
 			type="password"
@@ -98,7 +105,11 @@
 			>{#if isLoading}<LoaderCircle class="animate-spin" />{:else}Submit{/if}</button
 		>
 		{#if isError}
-			<output class="mt-2 text-center text-red-600" name="request_status" for="username password">
+			<output
+				class="mt-2 text-center text-red-600"
+				name="request_status"
+				for="username password"
+			>
 				Auth Error
 			</output>
 		{/if}

@@ -1,9 +1,9 @@
-import type { GetNextProducts, GetProducts } from '../types';
-import type ResponseSchema from './ResponseSchema';
+import { headers } from '$lib/product_sources/constants';
+import axios from 'axios';
 import { wrapper } from 'axios-cookiejar-support';
 import { CookieJar } from 'tough-cookie';
-import axios from 'axios';
-import { headers } from '$lib/product_sources/constants';
+import type { GetNextProducts, GetProducts } from '../types';
+import type ResponseSchema from './ResponseSchema';
 
 // NOTE: Helper function to add a delay (ms) between requests to avoid rate limiting, which can cause 403 after multiple queries in a short time.
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -18,10 +18,10 @@ export const getProducts: GetProducts = async (
 	const nItems = Math.min(maxItems, Infinity);
 	// NOTE: Added retries param (default 2) to handle intermittent 403 by refreshing cookies.
 	const formattedCode = code.replaceAll(/[^\w]/g, '').toUpperCase();
-	// NOTE: Make Referer dynamic to match the code/query, as hardcoded values can cause mismatches leading to 403 or invalid sessions.
+	// NOTE: Referer dynamic to match the code/query, as hardcoded values can cause mismatches leading to 403 or invalid sessions.
 	const refererUrl = `https://www.baldwinfilters.com/us/en/cross-reference-result-page.html?partNo1=${encodeURIComponent(code)}`;
 
-	// NOTE: Create a cookie jar to persist session cookies across requests, preventing 403 errors from missing Akamai bot management cookies (e.g., ak_bmsc).
+	// NOTE: cookie jar to persist session cookies across requests, preventing 403 errors from missing Akamai bot management cookies (e.g., ak_bmsc).
 	const jar = new CookieJar();
 	const client = wrapper(
 		axios.create({
@@ -46,7 +46,6 @@ export const getProducts: GetProducts = async (
 				'Sec-GPC': '1',
 				TE: 'trailers'
 			},
-			// NOTE: If running in Cloudflare Workers, avoid timeouts; set reasonable limits.
 			timeout: 10000 // 10s timeout to prevent hanging on slow responses.
 		})
 	);

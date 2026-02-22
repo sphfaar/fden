@@ -111,17 +111,17 @@
 		>
 		<span
 			class="hover:bg-opacity-80 relative m-auto flex size-[calc(100%-0.3rem)] items-center justify-center gap-2 bg-black px-2 text-nowrap transition-colors {style?.textColor} hover:text-white"
-			>{descriptors?.consensus}<span>{nEnabled}/{maxEnabled}</span></span
-		></button
+			>{descriptors?.consensus} {@render btnCounter(nEnabled, maxEnabled)}
+		</span></button
 	>
 {/snippet}
 
 <small class="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary/75 px-8 text-black"
 	>{srcConsensusDescription.short}</small
 >
-<small class="absolute -bottom-5 left-1/2 -translate-x-1/2 text-lime-300/80"
-	>{srcConsensusDescription.long}</small
->
+<!-- <small class="absolute -bottom-5 left-1/2 -translate-x-1/2 text-lime-300/80" -->
+<!-- 	>{srcConsensusDescription.long}</small -->
+<!-- > -->
 <span
 	class="pointer-events-none my-1.5 box-content w-full min-w-4 bg-primary/20 pt-1.5 pr-4 text-right text-xs text-nowrap text-primary"
 	>data format</span
@@ -133,7 +133,8 @@
 		class="radbg absolute top-[0.29rem] -z-50 h-[calc(100%-0.5rem)] w-[calc(100%-0.25rem)] bg-linear-to-b from-primary/20 to-secondary/20"
 	></div>
 	<button
-		class="-2px_0_0_0,2px_0_0_0] border-destructive text-destructive min-h-7 w-2/5 max-w-16 min-w-fit border bg-black px-1 shadow-[-5px_0_0_-3px,5px_0_0_-3px] shadow-black transition-colors hover:text-neutral-50"
+		class="-2px_0_0_0,2px_0_0_0] border-destructive text-destructive hover:text-warning min-h-7 w-2/5 max-w-16 min-w-fit border bg-black px-1 shadow-[-5px_0_0_-3px,5px_0_0_-3px] shadow-black transition-colors hover:cursor-pointer"
+		type="button"
 		onclick={() => {
 			enabledSourceCards.forEach((sc) => (sc.isChecked = false));
 		}}>Reset</button
@@ -172,9 +173,11 @@
 		>
 
 		<span
-			class="hover:bg-opacity-80 relative m-auto flex size-[calc(100%-0.3rem)] flex-initial items-center justify-center gap-2 bg-black px-2"
-			>All<span>{enabledSourceCardsAll.enabled}/{enabledSourceCardsAll.maxEnabled}</span
-			></span
+			class="hover:bg-opacity-80 relative m-auto flex size-[calc(100%-0.3rem)] flex-initial items-center justify-center gap-2 bg-black px-2 hover:cursor-pointer"
+			>All{@render btnCounter(
+				enabledSourceCardsAll.enabled,
+				enabledSourceCardsAll.maxEnabled
+			)}</span
 		></button
 	>
 
@@ -186,6 +189,10 @@
 	class="pointer-events-none my-1.5 w-full min-w-4 bg-primary/20 pt-1.5 pl-4 text-xs font-bold text-nowrap text-transparent xl:text-primary"
 	>{srcConsensusDescription.normal}</span
 >
+
+{#snippet btnCounter(count: number, max: number)}
+	<span class="font-bold">{count}<span class="text-xs font-medium">/{max}</span> </span>
+{/snippet}
 
 <style>
 	.radbg {

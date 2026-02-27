@@ -15,7 +15,6 @@ export const getProducts: GetProducts = async (code: string, maxItems, config) =
 			...headers,
 			Accept: 'application/json, text/javascript, */*; q=0.01',
 			'Accept-Language': 'en-US,en;q=0.5',
-			'Accept-Encoding': 'gzip, deflate, zstd',
 			Referer: 'https://shopindustrial.filtrationgroup.com/en/comparison-list.html',
 			'Sec-GPC': '1',
 			Connection: 'keep-alive',
@@ -40,11 +39,14 @@ export const getProducts: GetProducts = async (code: string, maxItems, config) =
 					for (let i = 0; i < Math.min(tableRows.length, nItems); i++) {
 						const row = tableRows[i];
 						products.push({
-							manufacturer: row.querySelector(':nth-child(3)')?.textContent?.trim() ?? '',
-							manufacturer_code: row.querySelector(':nth-child(1)')?.textContent?.trim() ?? '',
+							manufacturer:
+								row.querySelector(':nth-child(3)')?.textContent?.trim() ?? '',
+							manufacturer_code:
+								row.querySelector(':nth-child(1)')?.textContent?.trim() ?? '',
 							source_reference_code:
-								row.getElementsByClassName('fg_additional_product_info')[0]?.textContent?.trim() ??
-								'',
+								row
+									.getElementsByClassName('fg_additional_product_info')[0]
+									?.textContent?.trim() ?? '',
 							thumbnails: [row.querySelector('img')?.getAttribute('src') ?? '']
 						});
 					}

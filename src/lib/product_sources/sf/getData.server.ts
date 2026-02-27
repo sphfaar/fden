@@ -16,7 +16,6 @@ export const getProducts: GetProducts = (code, maxItems, config, page = 1) => {
 			Host: 'www.sf-filter.com',
 			Accept: 'application/json',
 			'Accept-Language': 'en,en-US;q=0.7,it;q=0.3',
-			'Accept-Encoding': 'gzip, deflate, br, zstd',
 			'Sec-GPC': '1',
 			Connection: 'keep-alive',
 			'Sec-Fetch-Dest': 'empty',

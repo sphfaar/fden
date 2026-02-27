@@ -22,8 +22,6 @@ export const getProducts: GetProducts = async (code, maxItems, config, page: num
 			...headers,
 			Accept: 'application/json',
 			'Accept-Language': 'en-US,en;q=0.5',
-			'Accept-Encoding': 'gzip, deflate, br, zstd',
-			DNT: '1',
 			'Sec-Fetch-Dest': 'empty',
 			'Sec-Fetch-Mode': 'no-cors',
 			'Sec-Fetch-Site': 'same-site',
@@ -43,10 +41,15 @@ export const getProducts: GetProducts = async (code, maxItems, config, page: num
 					if (resData.contents[0].MainContent[0].competitorProductDetailDTOList) {
 						for (
 							let i = 0;
-							i < resData.contents[0].MainContent[0].competitorProductDetailDTOList.length;
+							i <
+							resData.contents[0].MainContent[0].competitorProductDetailDTOList
+								.length;
 							i++
 						) {
-							const row = resData.contents[0].MainContent[0].competitorProductDetailDTOList[i];
+							const row =
+								resData.contents[0].MainContent[0].competitorProductDetailDTOList[
+									i
+								];
 							products.push({
 								manufacturer: row.manufactureName,
 								manufacturer_code: row.manufacturerPartNumber,
@@ -65,8 +68,10 @@ export const getProducts: GetProducts = async (code, maxItems, config, page: num
 						(resData.contents[0].MainContent[0].competitorPartsCount ?? NaN) /
 							(resData.contents[0].MainContent[0].customerPartsPerPage ?? NaN)
 					),
-				pagination: (resData) => resData.contents[0].MainContent[0].customerPartsPerPage ?? null,
-				totalItems: (resData) => Number(resData.contents[0].MainContent[0].competitorPartsCount)
+				pagination: (resData) =>
+					resData.contents[0].MainContent[0].customerPartsPerPage ?? null,
+				totalItems: (resData) =>
+					Number(resData.contents[0].MainContent[0].competitorPartsCount)
 			},
 			config,
 			page

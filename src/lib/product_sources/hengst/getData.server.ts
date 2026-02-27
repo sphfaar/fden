@@ -30,7 +30,6 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 			Host: 'catalog.hengst.com',
 			Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 			'Accept-Language': 'en-US,en;q=0.5',
-			'Accept-Encoding': 'gzip, deflate, br, zstd',
 			Referer: 'https://catalog.hengst.com/en/online-catalog/search/?catalog=it',
 			Connection: 'keep-alive',
 			'Upgrade-Insecure-Requests': '1',
@@ -48,21 +47,25 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 			'hengst',
 			axiosReqConfig,
 			{
-				tableRows: (document) => document.getElementsByClassName('result-table__table-mobile-row'),
+				tableRows: (document) =>
+					document.getElementsByClassName('result-table__table-mobile-row'),
 				rowsIterator: (tableRows) => {
 					const products: Product[] = [];
 					for (let i = 0; i < tableRows.length; i++) {
 						const rowItems = tableRows[i].getElementsByClassName(
 							'result-table__table-mobile-row__item'
 						);
-						const productUrl = tableRows[i].getElementsByClassName('result-table__linkbtn')[0];
+						const productUrl =
+							tableRows[i].getElementsByClassName('result-table__linkbtn')[0];
 						products.push({
 							manufacturer:
-								rowItems[1].getElementsByClassName('result-table__table-mobile-row__item-col')[1]
-									?.textContent ?? '',
+								rowItems[1].getElementsByClassName(
+									'result-table__table-mobile-row__item-col'
+								)[1]?.textContent ?? '',
 							manufacturer_code:
-								rowItems[0].getElementsByClassName('result-table__table-mobile-row__item-col')[1]
-									?.textContent ?? '',
+								rowItems[0].getElementsByClassName(
+									'result-table__table-mobile-row__item-col'
+								)[1]?.textContent ?? '',
 							source_reference_code: productUrl?.textContent?.trim() ?? '',
 							detailsUrl: productUrl?.getAttribute('href') ?? undefined
 						});
@@ -71,9 +74,15 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 				},
 				nPages: (document: Document) =>
 					Number(
-						document.getElementsByClassName('result-table__pagination__paging')[2]?.textContent
+						document.getElementsByClassName('result-table__pagination__paging')[2]
+							?.textContent
 					),
-				totalItems: (document: Document, page?: number, nProducts?: number, nPages?: number) => {
+				totalItems: (
+					document: Document,
+					page?: number,
+					nProducts?: number,
+					nPages?: number
+				) => {
 					if (document && nPages && nProducts && page) {
 						if (nPages === 2) {
 							if (page === 1) return String(nProducts + '+');

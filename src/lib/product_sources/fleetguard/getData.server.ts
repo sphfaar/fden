@@ -1,8 +1,8 @@
 import type { GetNextProducts, GetProducts } from '../types';
 
-export const getProducts: GetProducts = async (code, maxItems, config) => {
+export const getProducts: GetProducts = async (code, maxItems, _config) => {
 	try {
-		const response = await fetch('https://fleetguard-express.vercel.app/api/fleetguard', {
+		const response = await fetch('https://fden-express.vercel.app/api/fleetguard', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ code, maxItems }),

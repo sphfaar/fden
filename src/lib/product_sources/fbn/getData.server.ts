@@ -14,7 +14,6 @@ export async function getSession(
 			Host: 'fbn.it',
 			Accept: 'text/html, */*; q=0.01',
 			'Accept-Language': 'en-US,en;q=0.5',
-			'Accept-Encoding': 'gzip, deflate',
 			'X-PJAX': 'true',
 			'X-PJAX-Container': '#cr-container',
 			'X-Requested-With': 'XMLHttpRequest',
@@ -95,18 +94,26 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1,
 					for (let i = 0; i < tableRows.length; i++) {
 						products.push({
 							manufacturer:
-								tableRows[i].querySelector('td:nth-child(1)')?.textContent?.trim() ?? '',
+								tableRows[i]
+									.querySelector('td:nth-child(1)')
+									?.textContent?.trim() ?? '',
 							manufacturer_code:
-								tableRows[i].querySelector('td:nth-child(2)')?.textContent?.trim() ?? '',
+								tableRows[i]
+									.querySelector('td:nth-child(2)')
+									?.textContent?.trim() ?? '',
 							source_reference_code:
-								tableRows[i].querySelector('td:nth-child(3)')?.textContent?.trim() ?? ''
+								tableRows[i]
+									.querySelector('td:nth-child(3)')
+									?.textContent?.trim() ?? ''
 						});
 					}
 					return products;
 				},
 				nPages: (document) =>
 					Number(
-						document.querySelector("[name='batchIndex'] option:last-child")?.getAttribute('value')
+						document
+							.querySelector("[name='batchIndex'] option:last-child")
+							?.getAttribute('value')
 					),
 				totalItems: (document, nPages, page, nProducts) =>
 					document && nProducts && page && nPages

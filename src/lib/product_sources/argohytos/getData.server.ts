@@ -1,71 +1,26 @@
-import { getJsonToProducts } from '$lib/product_sources/getJsonToProductsData.server';
-import { headers } from '$lib/product_sources/constants';
 import type { GetProducts, GetNextProducts } from '../types';
-import type ResponseSchema from './ResponseSchema';
 
-export const getProducts: GetProducts = async (code, maxItems, config, page = 1) => {
-	const axiosReqConfig = {
-		method: 'POST',
-		url: 'https://portal.argo-hytos.com/core-app/api/elastic-search/oem-spare-parts',
-		headers: {
-			...headers,
-			Accept: 'application/json, text/plain, */*',
-			'Accept-Encoding': 'gzip, deflate, br, zstd',
-			'Accept-Language': 'en-US,en;q=0.5',
-			'Cache-Control': 'no-cache',
-			Connection: 'keep-alive',
-			'Content-Length': '65',
-			'Content-Type': 'application/json',
-			Host: 'portal.argo-hytos.com',
-			Origin: 'https://portal.argo-hytos.com',
-			Pragma: 'no-cache',
-			Referer: 'https://portal.argo-hytos.com/',
-			'Sec-Fetch-Dest': 'empty',
-			'Sec-Fetch-Mode': 'cors',
-			'Sec-Fetch-Site': 'same-origin',
-			'Sec-GPC': '1',
-			TE: 'trailers'
-		},
-		data: { term: code, filters: [], language: 'en', limit: 12, offset: (page - 1) * 12 }
-	};
+export const getProducts: GetProducts = async (code, _maxItems, _config, page = 1) => {
 	try {
-		return getJsonToProducts<ResponseSchema>(
-			'argohytos',
-			axiosReqConfig,
-			{
-				rowsIterator: (resData) => {
-					const products: Product[] = [];
+		const response = await fetch('https://fden-express.vercel.app/api/argohytos', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ code, page }),
+			cache: 'no-store'
+		});
 
-					for (let i = 0; i < resData.data.length; i++) {
-						const row = resData.data[i];
-						products.push({
-							manufacturer: row.referenceName,
-							manufacturer_code: row.referenceNumber,
-							source_reference_code: row.materialNumber,
-							detailsUrl: `https://portal.argo-hytos.com/#/catalog/ai_argo_hytos_products/search/ai_filter_elements/product-details/${row.id}`,
-							description: row.description,
-							thumbnails: [row.imagePath],
-							specs: row.dimension
-								? {
-										efficiency: row.dimension.match(/\d+/)?.[0] ?? undefined
-									}
-								: undefined
-						});
-					}
-					return products;
-				},
-				nPages: (resData) => Math.ceil(resData.count / 12)
-			},
-			config,
-			page
-		);
+		if (!response.ok) {
+			throw new Error(`Proxy failed: ${response.status}`);
+		}
+
+		return (await response.json()) as ProductsData;
 	} catch (err) {
-		console.error('argohytos error', err);
+		console.error('Argo-hytos proxy call failed:', err);
 		return {
 			meta: {
 				status: 500,
 				currentItemsDisplayed: 0,
-				totalItems: null,
+				totalItems: 0,
 				maxItemsPagination: null,
 				page: 0
 			},

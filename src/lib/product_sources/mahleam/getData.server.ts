@@ -14,7 +14,6 @@ export const getProducts: GetProducts = async (code, maxItems, config, page: num
 			Host: 'webservice.tecalliance.services',
 			Accept: 'application/json, text/plain, */*',
 			'Accept-Language': 'en,en-US;q=0.7,it;q=0.3',
-			'Accept-Encoding': 'gzip, deflate, br, zstd',
 			'Content-Length': '1036',
 			Origin: 'https://web.tecalliance.net',
 			'Sec-GPC': '1',

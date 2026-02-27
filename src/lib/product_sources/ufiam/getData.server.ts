@@ -14,7 +14,6 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 			...headers,
 			Accept: '*/*',
 			'Accept-Language': 'en,en-US;q=0.7,it;q=0.3',
-			'Accept-Encoding': 'gzip, deflate, zstd',
 			'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
 			Origin: 'https://shop.ufi-aftermarket.com',
 			Connection: 'keep-alive',
@@ -45,7 +44,8 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 							i < resData?.actions?.[0]?.returnValue?.returnValue?.hits?.length;
 							i++
 						) {
-							const row = resData?.actions?.[0]?.returnValue?.returnValue?.hits?.[i]._source;
+							const row =
+								resData?.actions?.[0]?.returnValue?.returnValue?.hits?.[i]._source;
 							if (row != undefined) {
 								products.push({
 									manufacturer: row.manufacturer ?? 'no manufacturer 🗿',

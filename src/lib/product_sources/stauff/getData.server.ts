@@ -21,10 +21,8 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 		},
 		headers: {
 			...headers,
-			Accept:
-				'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/png,image/svg+xml,*/*;q=0.8',
+			Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/png,image/svg+xml,*/*;q=0.8',
 			'Accept-Language': 'en-US,en;q=0.5',
-			'Accept-Encoding': 'gzip, deflate, br, zstd',
 			'Sec-GPC': '1',
 			Connection: 'keep-alive',
 			'Upgrade-Insecure-Requests': '1',
@@ -42,7 +40,8 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 			'stauff',
 			axiosReqConfig,
 			{
-				tableRows: (document) => document.querySelectorAll('.filterliste.desktop > tbody > td'),
+				tableRows: (document) =>
+					document.querySelectorAll('.filterliste.desktop > tbody > td'),
 				rowsIterator: (tableRows) => {
 					//tableRows are table cells in this source
 					const products: Product[] = [];
@@ -50,15 +49,22 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 						const j = index * 5;
 						products.push({
 							manufacturer:
-								tableRows[j + 1].textContent?.replace(/[\w\W]*(Manufacturer:)\s/g, '') ?? '',
-							manufacturer_code: tableRows[j + 1].textContent?.replace(/\n.*/, '') ?? '',
+								tableRows[j + 1].textContent?.replace(
+									/[\w\W]*(Manufacturer:)\s/g,
+									''
+								) ?? '',
+							manufacturer_code:
+								tableRows[j + 1].textContent?.replace(/\n.*/, '') ?? '',
 							source_reference_code: tableRows[j + 2].textContent ?? ''
 						});
 					}
 					return products;
 				},
 				nPages: (document) =>
-					Math.ceil(Number(document.getElementsByClassName('numresults')[0].textContent) / nItems),
+					Math.ceil(
+						Number(document.getElementsByClassName('numresults')[0].textContent) /
+							nItems
+					),
 				totalItems: (document) =>
 					Number(document.getElementsByClassName('numresults')[0].textContent)
 			},

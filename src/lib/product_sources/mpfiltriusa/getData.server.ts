@@ -14,7 +14,6 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 			cookie: 'mpfiltri=gi1hfjplvd0itqgu1ldbu2endl',
 			'Content-Type': 'application/x-www-form-urlencoded',
 			'Accept-Language': 'en-US,en;q=0.5',
-			'Accept-Encoding': 'gzip, deflate, zstd',
 			Referer: 'https://www.mpfiltriusa.com/tools/interchange-filter-elements.html',
 			Origin: 'https://www.mpfiltriusa.com',
 			'Sec-GPC': '1',
@@ -42,8 +41,10 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 						const row = tableRows[i];
 						products.push({
 							manufacturer: row.querySelector(':nth-child(2)')?.textContent ?? '',
-							manufacturer_code: row.querySelector(':nth-child(1)')?.textContent ?? '',
-							source_reference_code: row.querySelector(':nth-child(3)')?.textContent ?? ''
+							manufacturer_code:
+								row.querySelector(':nth-child(1)')?.textContent ?? '',
+							source_reference_code:
+								row.querySelector(':nth-child(3)')?.textContent ?? ''
 						});
 					}
 					return products;

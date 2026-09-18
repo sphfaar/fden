@@ -4,14 +4,20 @@
 		constructFilterFn,
 		createColumnHelper,
 		createFilteredRowModel,
+		createSortedRowModel,
 		globalFilteringFeature,
+		rowSortingFeature,
+		sortFn_text,
 		tableFeatures
 	} from '@tanstack/svelte-table';
 
 	const features = tableFeatures({
 		columnFilteringFeature,
 		globalFilteringFeature,
-		filteredRowModel: createFilteredRowModel()
+		rowSortingFeature,
+		filteredRowModel: createFilteredRowModel(),
+		sortedRowModel: createSortedRowModel(),
+		sortFns: { text: sortFn_text }
 	});
 
 	const columnHelper = createColumnHelper<typeof features, ProductOfTable>();
@@ -34,6 +40,9 @@
 </script>
 
 <script lang="ts">
+	import ArrowDown from '@lucide/svelte/icons/arrow-down';
+	import ArrowUp from '@lucide/svelte/icons/arrow-up';
+	import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
 	import Funnel from '@lucide/svelte/icons/funnel';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { createTable, FlexRender, renderSnippet, type Updater } from '@tanstack/svelte-table';
@@ -79,31 +88,42 @@
 	}
 
 	const columns = columnHelper.columns([
-		columnHelper.display({
+		columnHelper.accessor((row) => row.source.name, {
 			id: 'source',
 			header: 'Source',
+			enableGlobalFilter: false,
+			sortFn: 'text',
+			sortDescFirst: false,
 			cell: ({ row }) => renderSnippet(sourceCell, { src: row.original.source.image })
 		}),
 		columnHelper.accessor('manufacturerCode', {
 			header: 'Manufacturer Code',
+			sortFn: 'text',
+			sortDescFirst: false,
 			cell: (info) => renderSnippet(highlightCell, { value: info.getValue() })
 		}),
 		columnHelper.accessor('crossCode', {
 			header: 'Cross Code',
 			enableGlobalFilter: false,
+			sortFn: 'text',
+			sortDescFirst: false,
 			cell: (info) => renderSnippet(highlightCell, { value: info.getValue() })
 		}),
 		columnHelper.accessor('manufacturerName', {
 			header: 'Manufacturer Name',
 			enableGlobalFilter: false,
+			sortFn: 'text',
+			sortDescFirst: false,
 			cell: (info) => info.getValue()
 		}),
 		columnHelper.display({
 			id: 'thumbnails',
+			enableSorting: false,
 			cell: ({ row }) => renderSnippet(thumbnailsCell, { urls: row.original.thumbnails })
 		}),
 		columnHelper.display({
 			id: 'detailsUrl',
+			enableSorting: false,
 			cell: ({ row }) => renderSnippet(detailsCell, { href: row.original.detailsUrl })
 		})
 	]);
@@ -121,7 +141,8 @@
 		},
 		onGlobalFilterChange: setGlobalFilter,
 		globalFilterFn: productCodeGlobalFilter,
-		getColumnCanGlobalFilter: (column) => column.id === 'manufacturerCode'
+		getColumnCanGlobalFilter: (column) => column.id === 'manufacturerCode',
+		enableMultiSort: false
 	});
 
 	const headerClass =
@@ -197,9 +218,33 @@
 				class="border-accent-foreground/30 data-[state=selected]:bg-muted border-b transition-colors hover:bg-background"
 			>
 				{#each headerGroup.headers as header (header.id)}
-					<th class={headerClass}>
+					<th
+						class={headerClass}
+						aria-sort={header.column.getIsSorted() === 'asc'
+							? 'ascending'
+							: header.column.getIsSorted() === 'desc'
+								? 'descending'
+								: undefined}
+					>
 						{#if !header.isPlaceholder}
-							<FlexRender {header} />
+							{#if header.column.getCanSort()}
+								<button
+									type="button"
+									class="inline-flex cursor-pointer items-center gap-1 hover:text-primary"
+									onclick={header.column.getToggleSortingHandler()}
+								>
+									<FlexRender {header} />
+									{#if header.column.getIsSorted() === 'asc'}
+										<ArrowUp size={14} />
+									{:else if header.column.getIsSorted() === 'desc'}
+										<ArrowDown size={14} />
+									{:else}
+										<ArrowUpDown size={14} class="opacity-40" />
+									{/if}
+								</button>
+							{:else}
+								<FlexRender {header} />
+							{/if}
 						{/if}
 					</th>
 				{/each}

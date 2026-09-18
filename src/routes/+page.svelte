@@ -15,7 +15,7 @@
 	import { scrapingTypeColors } from '$lib/scarpingTypes';
 	import { SvelteMap } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
-	import { Search } from '@lucide/svelte';
+	import Search from '@lucide/svelte/icons/search';
 
 	const [send, receive] = crossfade({
 		duration: (d) => Math.sqrt(d * 200),
@@ -290,6 +290,7 @@
 			/>
 			<button
 				type="submit"
+				aria-label="search"
 				class="h-full cursor-pointer border border-primary/80 px-2 transition-colors hover:bg-primary/80 hover:text-background active:border-primary active:bg-primary active:text-background"
 			>
 				<Search size={20} />

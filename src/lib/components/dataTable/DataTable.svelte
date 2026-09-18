@@ -34,7 +34,7 @@
 </script>
 
 <script lang="ts">
-	import { Funnel } from '@lucide/svelte';
+	import Funnel from '@lucide/svelte/icons/funnel';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { createTable, FlexRender, renderSnippet, type Updater } from '@tanstack/svelte-table';
 

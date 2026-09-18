@@ -39,10 +39,10 @@
 		"wrangler": "^4.135.0"
 	},
 	"dependencies": {
-		"@lucide/svelte": "^0.577.0",
+		"@lucide/svelte": "^1.47.0",
 		"@tanstack/svelte-table": "^9.2.4",
 		"axios": "^1.20.0",
-		"axios-cookiejar-support": "^6.0.5",
+		"axios-cookiejar-support": "^7.0.0",
 		"linkedom": "^0.18.13",
 		"tough-cookie": "^6.0.2"
 	}

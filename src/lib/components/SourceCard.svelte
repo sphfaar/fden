@@ -1,5 +1,9 @@
 <script lang="ts">
-	import { LoaderCircle, Antenna, ListPlus, File, ArrowRightLeft } from '@lucide/svelte';
+	import Antenna from '@lucide/svelte/icons/antenna';
+	import ArrowRightLeft from '@lucide/svelte/icons/arrow-right-left';
+	import File from '@lucide/svelte/icons/file';
+	import ListPlus from '@lucide/svelte/icons/list-plus';
+	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import { scrapingTypeColors } from '$lib/scarpingTypes';
 
 	let {

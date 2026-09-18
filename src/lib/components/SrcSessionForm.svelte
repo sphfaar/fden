@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { ActionData } from '../../routes/$types';
-	import { LoaderCircle } from '@lucide/svelte';
+	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 
 	let {
 		sourceDescriptors,
@@ -101,6 +101,7 @@
 		<button
 			class="mt-3 cursor-pointer border border-primary/70 hover:bg-primary/70 hover:text-background active:bg-primary active:text-background disabled:bg-background disabled:opacity-100"
 			type="submit"
+			aria-label="Submit"
 			disabled={isLoading}
 			>{#if isLoading}<LoaderCircle class="animate-spin" />{:else}Submit{/if}</button
 		>

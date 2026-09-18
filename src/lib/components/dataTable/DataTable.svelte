@@ -43,14 +43,26 @@
 	import ArrowDown from '@lucide/svelte/icons/arrow-down';
 	import ArrowUp from '@lucide/svelte/icons/arrow-up';
 	import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Funnel from '@lucide/svelte/icons/funnel';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { createTable, FlexRender, renderSnippet, type Updater } from '@tanstack/svelte-table';
+	import {
+		exportProductsJson,
+		exportProductsSheet,
+		LAST_XLS_VERSION,
+		LAST_XLSX_VERSION,
+		XLS_VERSIONS,
+		XLSX_VERSIONS,
+		type ExportBookType
+	} from './exportTable';
 
 	let { products }: { products: ProductOfTable[] } = $props();
 
 	let searchFilterVal = $state('');
-	let filter: string | null = $derived(searchFilterVal.length > 0 ? searchFilterVal.trim() : null);
+	let filter: string | null = $derived(
+		searchFilterVal.length > 0 ? searchFilterVal.trim() : null
+	);
 
 	let thumbnailsInProxyFallback = new SvelteSet<string>();
 	let thumbnailsHidden = new SvelteSet<string>();
@@ -84,7 +96,8 @@
 	}
 
 	function setGlobalFilter(updater: Updater<string>) {
-		searchFilterVal = typeof updater === 'function' ? updater(searchFilterVal) : (updater ?? '');
+		searchFilterVal =
+			typeof updater === 'function' ? updater(searchFilterVal) : (updater ?? '');
 	}
 
 	const columns = columnHelper.columns([
@@ -148,7 +161,37 @@
 	const headerClass =
 		'text-muted-foreground h-12 px-4 text-left align-middle font-medium [&:has([role=checkbox])]:pr-0';
 	const cellClass = 'p-4 py-2 align-middle [&:has([role=checkbox])]:pr-0';
+	const exportMenuItemClass =
+		'flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-1.5 text-left text-sm whitespace-nowrap hover:bg-primary/20';
+
+	let exportMenuOpen = $state(false);
+
+	function visibleProducts(): ProductOfTable[] {
+		return table.getRowModel().rows.map((row) => row.original);
+	}
+
+	async function exportTable(kind: 'json' | ExportBookType) {
+		exportMenuOpen = false;
+		const products = visibleProducts();
+		if (kind === 'json') {
+			exportProductsJson(products);
+			return;
+		}
+		await exportProductsSheet(products, kind);
+	}
+
+	function closeExportMenuOnOutside(event: PointerEvent) {
+		if (!exportMenuOpen) return;
+		if (event.target instanceof Element && event.target.closest('[data-export-menu]')) return;
+		exportMenuOpen = false;
+	}
+
+	function closeExportMenuOnEscape(event: KeyboardEvent) {
+		if (event.key === 'Escape') exportMenuOpen = false;
+	}
 </script>
+
+<svelte:window onpointerdown={closeExportMenuOnOutside} onkeydown={closeExportMenuOnEscape} />
 
 {#snippet sourceCell({ src }: { src?: string })}
 	<img class="h-6 pl-4" {src} alt="s_img" />
@@ -178,7 +221,9 @@
 			{#each urls as url, j (j)}
 				<li class:hidden={thumbnailsHidden.has(url)}>
 					<img
-						src={thumbnailsInProxyFallback.has(url) ? `/proxy?url=${encodeURIComponent(url)}` : url}
+						src={thumbnailsInProxyFallback.has(url)
+							? `/proxy?url=${encodeURIComponent(url)}`
+							: url}
 						loading="lazy"
 						alt="p_img"
 						height={32}
@@ -203,12 +248,137 @@
 	{/if}
 {/snippet}
 
-<div class="flex w-full items-center gap-2 border border-primary/50 px-2 py-1">
-	<Funnel size={16} />
-	<input class="w-full bg-primary/10" bind:value={searchFilterVal} />
-	<samp class="font-bold"
-		>{table.getRowModel().rows.length}/{table.getCoreRowModel().rows.length}</samp
-	>
+<div class="flex w-full items-stretch gap-2">
+	<div class="flex w-full items-center gap-2 border border-primary/50 px-2 py-1">
+		<Funnel size={16} />
+		<input type="text" class="min-w-0 flex-1 bg-primary/10" bind:value={searchFilterVal} />
+		<samp class="font-bold"
+			>{table.getRowModel().rows.length}/{table.getCoreRowModel().rows.length}</samp
+		>
+	</div>
+
+	<div class="relative flex shrink-0" data-export-menu>
+		<button
+			type="button"
+			class="h-full cursor-pointer border border-primary/50 px-2 text-sm font-medium hover:bg-primary/80 hover:text-background"
+			aria-haspopup="menu"
+			aria-expanded={exportMenuOpen}
+			onclick={() => (exportMenuOpen = !exportMenuOpen)}
+		>
+			Export
+		</button>
+		{#if exportMenuOpen}
+			<ul
+				role="menu"
+				class="absolute top-full right-0 z-30 mt-0.5 min-w-36 border border-primary/50 bg-background shadow-lg"
+			>
+				<li role="none">
+					<button
+						type="button"
+						role="menuitem"
+						class={exportMenuItemClass}
+						onclick={() => exportTable('csv')}>CSV</button
+					>
+				</li>
+				<li role="none" class="group relative">
+					<button
+						type="button"
+						role="menuitem"
+						class={exportMenuItemClass}
+						aria-haspopup="menu"
+						onclick={() => exportTable(LAST_XLSX_VERSION.bookType)}
+					>
+						XLSX
+						<ChevronRight size={14} />
+					</button>
+					<ul
+						role="menu"
+						class="absolute top-0 right-full z-40 hidden min-w-56 border border-primary/50 bg-background shadow-lg group-focus-within:block group-hover:block"
+					>
+						{#each XLSX_VERSIONS as version (version.bookType)}
+							<li role="none">
+								<button
+									type="button"
+									role="menuitem"
+									class={exportMenuItemClass}
+									onclick={() => exportTable(version.bookType)}
+									>{version.label}</button
+								>
+							</li>
+						{/each}
+					</ul>
+				</li>
+				<li role="none" class="group relative">
+					<button
+						type="button"
+						role="menuitem"
+						class={exportMenuItemClass}
+						aria-haspopup="menu"
+						onclick={() => exportTable(LAST_XLS_VERSION.bookType)}
+					>
+						XLS
+						<ChevronRight size={14} />
+					</button>
+					<ul
+						role="menu"
+						class="absolute top-0 right-full z-40 hidden min-w-56 border border-primary/50 bg-background shadow-lg group-focus-within:block group-hover:block"
+					>
+						{#each XLS_VERSIONS as version (version.bookType)}
+							<li role="none">
+								<button
+									type="button"
+									role="menuitem"
+									class={exportMenuItemClass}
+									onclick={() => exportTable(version.bookType)}
+									>{version.label}</button
+								>
+							</li>
+						{/each}
+					</ul>
+				</li>
+				<li role="none">
+					<button
+						type="button"
+						role="menuitem"
+						class={exportMenuItemClass}
+						onclick={() => exportTable('ods')}>ODS</button
+					>
+				</li>
+				<li role="none">
+					<button
+						type="button"
+						role="menuitem"
+						class={exportMenuItemClass}
+						onclick={() => exportTable('fods')}>FODS</button
+					>
+				</li>
+				<li role="none">
+					<button
+						type="button"
+						role="menuitem"
+						class={exportMenuItemClass}
+						onclick={() => exportTable('html')}>HTML</button
+					>
+				</li>
+				<li role="none">
+					<button
+						type="button"
+						role="menuitem"
+						class={exportMenuItemClass}
+						onclick={() => exportTable('txt')}>TXT</button
+					>
+				</li>
+				<li role="none">
+					<button
+						type="button"
+						role="menuitem"
+						class={exportMenuItemClass}
+						onclick={() => exportTable('json')}>JSON</button
+					>
+				</li>
+			</ul>
+		{/if}
+	</div>
 </div>
 
 <table class="mb-32 w-full caption-bottom text-sm">

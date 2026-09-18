@@ -1,5 +1,5 @@
 import { headers } from '$lib/product_sources/constants';
-import axios from 'axios';
+import { createAxios } from '$lib/product_sources/axios.server';
 import { wrapper } from 'axios-cookiejar-support';
 import { CookieJar } from 'tough-cookie';
 import type { GetNextProducts, GetProducts } from '../types';
@@ -24,7 +24,7 @@ export const getProducts: GetProducts = async (
 	// NOTE: cookie jar to persist session cookies across requests, preventing 403 errors from missing Akamai bot management cookies (e.g., ak_bmsc).
 	const jar = new CookieJar();
 	const client = wrapper(
-		axios.create({
+		createAxios({
 			baseURL: 'https://www.baldwinfilters.com',
 			jar,
 			withCredentials: true, // NOTE: Enable credentials to send/receive cookies automatically.

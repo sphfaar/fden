@@ -1,6 +1,7 @@
 <script module lang="ts">
 	import {
 		columnFilteringFeature,
+		columnOrderingFeature,
 		constructFilterFn,
 		createColumnHelper,
 		createFilteredRowModel,
@@ -15,6 +16,7 @@
 		columnFilteringFeature,
 		globalFilteringFeature,
 		rowSortingFeature,
+		columnOrderingFeature,
 		filteredRowModel: createFilteredRowModel(),
 		sortedRowModel: createSortedRowModel(),
 		sortFns: { text: sortFn_text }
@@ -45,8 +47,17 @@
 	import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Funnel from '@lucide/svelte/icons/funnel';
+	import GripVertical from '@lucide/svelte/icons/grip-vertical';
+	import { onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { createTable, FlexRender, renderSnippet, type Updater } from '@tanstack/svelte-table';
+	import {
+		COLUMN_ORDER_KEY,
+		DEFAULT_COLUMN_ORDER,
+		loadColumnOrder,
+		saveColumnOrder,
+		swapColumnOrder
+	} from './columnOrder';
 	import {
 		exportProductsJson,
 		exportProductsSheet,
@@ -63,6 +74,9 @@
 	let filter: string | null = $derived(
 		searchFilterVal.length > 0 ? searchFilterVal.trim() : null
 	);
+	let columnOrder = $state.raw<string[]>([...DEFAULT_COLUMN_ORDER]);
+	let draggingColumnId = $state<string | null>(null);
+	let dropTargetColumnId = $state<string | null>(null);
 
 	let thumbnailsInProxyFallback = new SvelteSet<string>();
 	let thumbnailsHidden = new SvelteSet<string>();
@@ -99,6 +113,57 @@
 		searchFilterVal =
 			typeof updater === 'function' ? updater(searchFilterVal) : (updater ?? '');
 	}
+
+	function setColumnOrder(updater: Updater<string[]>) {
+		columnOrder = typeof updater === 'function' ? updater(columnOrder) : updater;
+	}
+
+	function columnIdFromEvent(event: DragEvent): string | null {
+		const el = event.target instanceof Element ? event.target.closest('[data-column-id]') : null;
+		return el?.getAttribute('data-column-id') ?? null;
+	}
+
+	function onColumnDragStart(event: DragEvent, columnId: string) {
+		draggingColumnId = columnId;
+		dropTargetColumnId = null;
+		event.dataTransfer?.setData('text/plain', columnId);
+		if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+	}
+
+	function onTableDragOver(event: DragEvent) {
+		if (!draggingColumnId) return;
+		const columnId = columnIdFromEvent(event);
+		if (!columnId) return;
+		event.preventDefault();
+		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+		if (dropTargetColumnId !== columnId) dropTargetColumnId = columnId;
+	}
+
+	function onTableDrop(event: DragEvent) {
+		event.preventDefault();
+		const toId = columnIdFromEvent(event);
+		const fromId = draggingColumnId ?? event.dataTransfer?.getData('text/plain') ?? '';
+		if (fromId && toId) {
+			const next = swapColumnOrder(columnOrder, fromId, toId);
+			columnOrder = next;
+			saveColumnOrder(next);
+		}
+		draggingColumnId = null;
+		dropTargetColumnId = null;
+	}
+
+	function onColumnDragEnd() {
+		draggingColumnId = null;
+		dropTargetColumnId = null;
+	}
+
+	function onColumnOrderStorage(event: StorageEvent) {
+		if (event.key === COLUMN_ORDER_KEY) columnOrder = loadColumnOrder();
+	}
+
+	onMount(() => {
+		columnOrder = loadColumnOrder();
+	});
 
 	const columns = columnHelper.columns([
 		columnHelper.accessor((row) => row.source.name, {
@@ -150,9 +215,13 @@
 		state: {
 			get globalFilter() {
 				return filter && filter.length > 0 ? filter : undefined;
+			},
+			get columnOrder() {
+				return columnOrder;
 			}
 		},
 		onGlobalFilterChange: setGlobalFilter,
+		onColumnOrderChange: setColumnOrder,
 		globalFilterFn: productCodeGlobalFilter,
 		getColumnCanGlobalFilter: (column) => column.id === 'manufacturerCode',
 		enableMultiSort: false
@@ -191,7 +260,11 @@
 	}
 </script>
 
-<svelte:window onpointerdown={closeExportMenuOnOutside} onkeydown={closeExportMenuOnEscape} />
+<svelte:window
+	onpointerdown={closeExportMenuOnOutside}
+	onkeydown={closeExportMenuOnEscape}
+	onstorage={onColumnOrderStorage}
+/>
 
 {#snippet sourceCell({ src }: { src?: string })}
 	<img class="h-6 pl-4" {src} alt="s_img" />
@@ -381,7 +454,11 @@
 	</div>
 </div>
 
-<table class="mb-32 w-full caption-bottom text-sm">
+<table
+	class="mb-32 w-full caption-bottom text-sm"
+	ondragover={onTableDragOver}
+	ondrop={onTableDrop}
+>
 	<thead>
 		{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
 			<tr
@@ -389,32 +466,49 @@
 			>
 				{#each headerGroup.headers as header (header.id)}
 					<th
-						class={headerClass}
+						class={[
+							headerClass,
+							'cursor-grab select-none',
+							draggingColumnId === header.column.id && 'opacity-40',
+							dropTargetColumnId === header.column.id &&
+								draggingColumnId !== header.column.id &&
+								'bg-primary/20'
+						]}
+						data-column-id={header.column.id}
+						draggable="true"
+						aria-grabbed={draggingColumnId === header.column.id}
 						aria-sort={header.column.getIsSorted() === 'asc'
 							? 'ascending'
 							: header.column.getIsSorted() === 'desc'
 								? 'descending'
 								: undefined}
+						ondragstart={(event) => onColumnDragStart(event, header.column.id)}
+						ondragend={onColumnDragEnd}
 					>
 						{#if !header.isPlaceholder}
-							{#if header.column.getCanSort()}
-								<button
-									type="button"
-									class="inline-flex cursor-pointer items-center gap-1 hover:text-primary"
-									onclick={header.column.getToggleSortingHandler()}
-								>
+							<div class="flex items-center gap-1">
+								<span class="inline-flex shrink-0 cursor-grab text-muted-foreground">
+									<GripVertical size={14} aria-hidden="true" />
+								</span>
+								{#if header.column.getCanSort()}
+									<button
+										type="button"
+										class="inline-flex cursor-pointer items-center gap-1 hover:text-primary"
+										onclick={header.column.getToggleSortingHandler()}
+									>
+										<FlexRender {header} />
+										{#if header.column.getIsSorted() === 'asc'}
+											<ArrowUp size={14} />
+										{:else if header.column.getIsSorted() === 'desc'}
+											<ArrowDown size={14} />
+										{:else}
+											<ArrowUpDown size={14} class="opacity-40" />
+										{/if}
+									</button>
+								{:else}
 									<FlexRender {header} />
-									{#if header.column.getIsSorted() === 'asc'}
-										<ArrowUp size={14} />
-									{:else if header.column.getIsSorted() === 'desc'}
-										<ArrowDown size={14} />
-									{:else}
-										<ArrowUpDown size={14} class="opacity-40" />
-									{/if}
-								</button>
-							{:else}
-								<FlexRender {header} />
-							{/if}
+								{/if}
+							</div>
 						{/if}
 					</th>
 				{/each}
@@ -430,7 +524,16 @@
 				]}
 			>
 				{#each row.getAllCells() as cell (cell.id)}
-					<td class={cellClass}>
+					<td
+						class={[
+							cellClass,
+							draggingColumnId === cell.column.id && 'opacity-40',
+							dropTargetColumnId === cell.column.id &&
+								draggingColumnId !== cell.column.id &&
+								'bg-primary/10'
+						]}
+						data-column-id={cell.column.id}
+					>
 						<FlexRender {cell} />
 					</td>
 				{/each}

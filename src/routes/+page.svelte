@@ -13,6 +13,12 @@
 		SEARCH_HISTORY_KEY,
 		type SearchEntry
 	} from '$lib/searchHistory';
+	import {
+		DEFAULT_LEGEND_SLIDER,
+		LEGEND_SLIDER_KEY,
+		loadLegendSlider,
+		saveLegendSlider
+	} from '$lib/legendSlider';
 	import { quintOut } from 'svelte/easing';
 	import { crossfade } from 'svelte/transition';
 	import { flip } from 'svelte/animate';
@@ -58,7 +64,7 @@
 	const recentQueries = $derived(listRecentQueries(searchEntries));
 	const frequentQueries = $derived(listFrequentQueries(searchEntries));
 	let searchForm: HTMLFormElement | undefined = $state();
-	let legendSlider = $state(0.5);
+	let legendSlider = $state(DEFAULT_LEGEND_SLIDER);
 	const frequentChipWidth = $derived(1 - legendSlider);
 	let legendSliderHandle: HTMLElement | null = null;
 	let legendSliderDragging = false;
@@ -231,6 +237,7 @@
 		if (legendSliderPending === null) return;
 		legendSlider = legendSliderPending;
 		legendSliderPending = null;
+		saveLegendSlider(legendSlider);
 	}
 
 	function scheduleLegendSlider(next: number) {
@@ -246,6 +253,7 @@
 		}
 		legendSliderPending = null;
 		legendSlider = clamp01(next);
+		saveLegendSlider(legendSlider);
 	}
 
 	function legendSliderFromPointer(event: PointerEvent) {
@@ -318,8 +326,13 @@
 	}
 
 	function onSearchHistoryStorage(event: StorageEvent) {
-		if (event.key !== SEARCH_HISTORY_KEY) return;
-		searchEntries = loadSearchEntries();
+		if (event.key === SEARCH_HISTORY_KEY) {
+			searchEntries = loadSearchEntries();
+			return;
+		}
+		if (event.key === LEGEND_SLIDER_KEY) {
+			legendSlider = loadLegendSlider();
+		}
 	}
 
 	function updateSourceCardsLoadedStatsAfterSubmit() {
@@ -387,6 +400,7 @@
 	});
 
 	onMount(async () => {
+		legendSlider = loadLegendSlider();
 		// if (tableWorker === null) initTableWorker();
 		// onDestroy(() => {
 		// 	if (tableWorker) tableWorker.terminate();

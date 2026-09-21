@@ -9,6 +9,7 @@ export const scrapingTypeColors = new Map<
 		};
 		style: {
 			bg: string;
+			hoverBg: string;
 			stroke: string;
 			border: string;
 			textColor: string;
@@ -30,6 +31,7 @@ export const scrapingTypeColors = new Map<
 			},
 			style: {
 				bg: 'bg-cyan-300/75',
+				hoverBg: 'hover:bg-cyan-300/30',
 				stroke: 'stroke-cyan-300',
 				border: 'border-cyan-300',
 				textColor: 'text-cyan-300',
@@ -52,6 +54,7 @@ export const scrapingTypeColors = new Map<
 			},
 			style: {
 				bg: 'bg-yellow-500/75',
+				hoverBg: 'hover:bg-yellow-500/30',
 				stroke: 'stroke-yellow-500',
 				border: 'border-yellow-500',
 				textColor: 'text-yellow-500',
@@ -74,6 +77,7 @@ export const scrapingTypeColors = new Map<
 	// 		},
 	// 		style: {
 	// 			bg: 'bg-rose-600/75',
+	// 			hoverBg: 'hover:bg-rose-600/30',
 	// 			stroke: 'stroke-rose-600',
 	// 			border: 'border-rose-600',
 	// 			textColor: 'text-rose-600',

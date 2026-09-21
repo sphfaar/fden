@@ -228,7 +228,7 @@
 	});
 
 	const headerClass =
-		'text-muted-foreground h-12 px-4 text-left align-middle font-medium [&:has([role=checkbox])]:pr-0';
+		'h-12 px-4 text-left align-middle font-medium text-primary/50 [&:has([role=checkbox])]:pr-0';
 	const cellClass = 'p-4 py-2 align-middle [&:has([role=checkbox])]:pr-0';
 	const exportMenuItemClass =
 		'flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-1.5 text-left text-sm whitespace-nowrap hover:bg-primary/20';
@@ -292,7 +292,7 @@
 	{#if urls}
 		<ul>
 			{#each urls as url, j (j)}
-				<li class:hidden={thumbnailsHidden.has(url)}>
+				<li class={{ hidden: thumbnailsHidden.has(url) }}>
 					<img
 						src={thumbnailsInProxyFallback.has(url)
 							? `/proxy?url=${encodeURIComponent(url)}`
@@ -462,7 +462,7 @@
 	<thead>
 		{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
 			<tr
-				class="border-accent-foreground/30 data-[state=selected]:bg-muted border-b transition-colors hover:bg-background"
+				class="border-b border-primary/30 transition-colors hover:bg-background data-[state=selected]:bg-primary/10"
 			>
 				{#each headerGroup.headers as header (header.id)}
 					<th
@@ -487,7 +487,7 @@
 					>
 						{#if !header.isPlaceholder}
 							<div class="flex items-center gap-1">
-								<span class="inline-flex shrink-0 cursor-grab text-muted-foreground">
+								<span class="inline-flex shrink-0 cursor-grab text-primary/50">
 									<GripVertical size={14} aria-hidden="true" />
 								</span>
 								{#if header.column.getCanSort()}
@@ -520,7 +520,7 @@
 			<tr
 				class={[
 					row.getDisplayIndex() % 2 === 0 && 'bg-secondary/5',
-					'data-[state=selected]:bg-muted'
+					'data-[state=selected]:bg-primary/10'
 				]}
 			>
 				{#each row.getAllCells() as cell (cell.id)}

@@ -139,7 +139,7 @@
 
 <button
 	disabled={sourceDescriptors.isLoggedIn === false}
-	class="focus-visible:ring-ring grid h-full cursor-pointer content-stretch items-center justify-center border transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-20
+	class="grid h-full cursor-pointer content-stretch items-center justify-center border transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:opacity-20
   {!isChecked || isDataLoaded ? 'border-solid' : 'border-dashed'}
   {isChecked
 		? `source-card-checked w-xs ${
@@ -379,7 +379,7 @@
 	<p
 		class="col-span-2 row-span-2 mb-2 {enabled
 			? 'mt-1'
-			: 'mt-0.5'} text-muted-foreground text-xs"
+			: 'mt-0.5'} text-xs text-primary/50"
 	>
 		(loading)
 	</p>

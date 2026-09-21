@@ -489,7 +489,7 @@
 					pattern={`[\\w.\\-\\/]{3,32}`}
 					oninput={checkOutdatedSourceData}
 					required
-					class="text-md w-full border border-primary/80 bg-background px-2 text-lg font-bold placeholder-primary/50 ring-primary/50 ring-offset-background focus-visible:ring focus-visible:ring-offset-8 focus-visible:outline-none"
+					class="text-md w-full border border-primary/80 bg-background px-2 text-lg font-bold placeholder-primary/50 ring-primary/50 ring-offset-background focus-visible:ring-3 focus-visible:ring-offset-8 focus-visible:outline-hidden"
 				/>
 				<button
 					type="submit"
@@ -512,10 +512,9 @@
 				<div
 					class={[
 						'flex grow flex-col gap-px bg-background transition-shadow',
-						disabledSC.isMouseOverScrapingType
-							? scrapingTypeColors.get(disabledSC.sourceDescriptors.scrapingType)
-									?.style.shadow.bottom
-							: 'bg-opacity-100'
+						disabledSC.isMouseOverScrapingType &&
+							scrapingTypeColors.get(disabledSC.sourceDescriptors.scrapingType)
+								?.style.shadow.bottom
 					]}
 					in:receive={{ key: disabledSC.sourceDescriptors.sourceID }}
 					out:send={{ key: disabledSC.sourceDescriptors.sourceID }}
@@ -543,7 +542,7 @@
 
 		<fieldset
 			disabled={!codeRgx.test(code)}
-			class="disabled:muted relative z-20 flex font-medium"
+			class="relative z-20 flex font-medium disabled:opacity-50"
 		>
 			<ButtonsByScrapingType {enabledSourceCards} />
 		</fieldset>

@@ -59,7 +59,7 @@
 		style: null
 	}}
 	<button
-		class="relative min-h-7 w-full max-w-52 min-w-fit cursor-pointer overflow-hidden border font-semibold capitalize shadow-[-5px_0_0_-3px,5px_0_0_-3px] shadow-black {style?.border} {style?.bg} bg-opacity-0 hover:bg-opacity-30 transition-colors hover:text-neutral-50"
+		class="relative min-h-7 w-full max-w-52 min-w-fit cursor-pointer overflow-hidden border font-semibold capitalize shadow-[-5px_0_0_-3px,5px_0_0_-3px] shadow-black {style?.border} bg-transparent {style?.hoverBg} transition-colors hover:text-neutral-50"
 		onclick={() => {
 			const { nEnabled, maxEnabled } = nEnabledSourceCardsByType.get(scrapingType) ?? {
 				nEnabled: NaN,
@@ -98,7 +98,7 @@
 		}}
 	>
 		<svg
-			class="absolute top-1/2 -right-1 -left-1 -translate-y-1/2 rotate-90 transform bg-black"
+			class="absolute top-1/2 -right-1 -left-1 -translate-y-1/2 rotate-90 bg-black"
 			viewBox="0 0 512 512"
 		>
 			<circle
@@ -112,7 +112,7 @@
 			></circle></svg
 		>
 		<span
-			class="hover:bg-opacity-80 relative m-auto flex size-[calc(100%-0.3rem)] items-center justify-center gap-2 bg-black px-2 text-nowrap transition-colors {style?.textColor} hover:text-white"
+			class="relative m-auto flex size-[calc(100%-0.3rem)] items-center justify-center gap-2 bg-black px-2 text-nowrap transition-colors hover:bg-black/80 {style?.textColor} hover:text-white"
 			>{descriptors?.consensus} {@render btnCounter(nEnabled, maxEnabled)}
 		</span></button
 	>
@@ -135,7 +135,7 @@
 		class="radbg absolute top-[0.29rem] -z-50 h-[calc(100%-0.5rem)] w-[calc(100%-0.25rem)] bg-linear-to-b from-primary/20 to-secondary/20"
 	></div>
 	<button
-		class="-2px_0_0_0,2px_0_0_0] border-destructive text-destructive hover:text-warning min-h-7 w-2/5 max-w-16 min-w-fit border bg-black px-1 shadow-[-5px_0_0_-3px,5px_0_0_-3px] shadow-black transition-colors hover:cursor-pointer"
+		class="-2px_0_0_0,2px_0_0_0] min-h-7 w-2/5 max-w-16 min-w-fit border border-error bg-black px-1 text-error shadow-[-5px_0_0_-3px,5px_0_0_-3px] shadow-black transition-colors hover:cursor-pointer hover:text-primary"
 		type="button"
 		onclick={() => {
 			enabledSourceCards.forEach((sc) => (sc.isChecked = false));
@@ -160,7 +160,7 @@
 			enabledSourceCards.forEach((sc) => (sc.isMouseOverScrapingType = false))}
 	>
 		<svg
-			class="absolute top-1/2 -right-1 -left-1 -translate-y-1/2 rotate-90 transform bg-black"
+			class="absolute top-1/2 -right-1 -left-1 -translate-y-1/2 rotate-90 bg-black"
 			viewBox="0 0 512 512"
 		>
 			<circle
@@ -175,7 +175,7 @@
 		>
 
 		<span
-			class="hover:bg-opacity-80 relative m-auto flex size-[calc(100%-0.3rem)] flex-initial items-center justify-center gap-2 bg-black px-2 hover:cursor-pointer"
+			class="relative m-auto flex size-[calc(100%-0.3rem)] flex-initial items-center justify-center gap-2 bg-black px-2 hover:cursor-pointer hover:bg-black/80"
 			>All{@render btnCounter(
 				enabledSourceCardsAll.enabled,
 				enabledSourceCardsAll.maxEnabled

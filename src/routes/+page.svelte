@@ -506,8 +506,8 @@
 			class="flex min-w-44 flex-wrap content-center gap-3 px-8 pt-7 pb-8 shadow-[0_3px_0_0] shadow-primary/5 lg:px-12"
 		>
 			{#each enabledSourceCards.filter((s) => s.sourceDescriptors.isLoggedIn === false || !s.isChecked) as disabledSC (disabledSC.sourceDescriptors.sourceID)}
-				{@const metadataPromise = sourceCardsMetadataPromises.get(
-					disabledSC.sourceDescriptors.sourceID
+				{const metadataPromise = $derived(
+					sourceCardsMetadataPromises.get(disabledSC.sourceDescriptors.sourceID)
 				)}
 				<div
 					class={[
@@ -552,8 +552,8 @@
 			class="flex basis-auto flex-wrap content-center justify-center gap-4 border-b border-secondary/20 px-8 pt-8 pb-10 shadow-[0_-3px_0_0] shadow-primary/5 lg:px-12"
 		>
 			{#each enabledSourceCards.filter((s) => s.isChecked) as enabledSC (enabledSC.sourceDescriptors.sourceID)}
-				{@const metadataPromise = sourceCardsMetadataPromises.get(
-					enabledSC.sourceDescriptors.sourceID
+				{const metadataPromise = $derived(
+					sourceCardsMetadataPromises.get(enabledSC.sourceDescriptors.sourceID)
 				)}
 				<div
 					class={[

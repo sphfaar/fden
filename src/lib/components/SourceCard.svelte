@@ -267,17 +267,18 @@
 
 <!-- button to load more items snipped because sevelte doesn't like buttons inside buttons (for hydratation errors) -->
 {#snippet buttonLoadMore(metaData: MetaData)}
-	{@const isDisabled =
+	{const isDisabled = $derived(
 		(metaData.totalItems &&
 			typeof metaData.totalItems !== 'string' &&
 			metaData.maxItemsPagination &&
 			metaData.currentItemsDisplayed < metaData.totalItems &&
 			isDataLoaded) ||
-		(metaData.pages && metaData.page < metaData.pages) ||
-		typeof metaData.totalItems === 'string' ||
-		!lastCodeQuery
+			(metaData.pages && metaData.page < metaData.pages) ||
+			typeof metaData.totalItems === 'string' ||
+			!lastCodeQuery
 			? false
-			: true}
+			: true
+	)}
 	<button
 		class="row-span-2 flex size-full cursor-pointer flex-col place-content-center items-center border-l border-primary bg-primary/10 hover:bg-primary/20 hover:text-primary disabled:bg-transparent disabled:bg-cover disabled:opacity-70"
 		style={isDisabled
@@ -348,11 +349,11 @@
 	opts: { fill?: string; stroke?: string },
 	className?: string
 )}
-	{@const containerHeight = 50}
-	{@const totalRects = 8}
-	{@const numFilled = Math.floor(totalRects * progress)}
-	{@const gap = 4}
-	{@const rectHeight = containerHeight / totalRects - gap}
+	{const containerHeight = 50}
+	{const totalRects = 8}
+	{const gap = 4}
+	{const rectHeight = containerHeight / totalRects - gap}
+	{const numFilled = $derived(Math.floor(totalRects * progress))}
 	<svg
 		class={className}
 		viewBox="0 0 20 {containerHeight}"

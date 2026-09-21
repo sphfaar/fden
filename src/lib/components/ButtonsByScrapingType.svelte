@@ -48,11 +48,13 @@
 </script>
 
 {#snippet scrapingTypeButtons(scrapingType: SourceDescriptors['scrapingType'])}
-	{@const { nEnabled, maxEnabled } = nEnabledSourceCardsByType.get(scrapingType) ?? {
-		nEnabled: NaN,
-		maxEnabled: NaN
-	}}
-	{@const { descriptors, style } = scrapingTypeColors.get(scrapingType) ?? {
+	{const { nEnabled, maxEnabled } = $derived(
+		nEnabledSourceCardsByType.get(scrapingType) ?? {
+			nEnabled: NaN,
+			maxEnabled: NaN
+		}
+	)}
+	{const { descriptors, style } = scrapingTypeColors.get(scrapingType) ?? {
 		descriptors: null,
 		style: null
 	}}

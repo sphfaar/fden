@@ -89,6 +89,7 @@ declare global {
 		longDescription?: string;
 		category?: string;
 		thumbnails?: string[];
+		cachedAt?: string;
 	}
 
 	interface ProductOfTable {
@@ -101,6 +102,7 @@ declare global {
 		manufacturerName: string;
 		thumbnails?: string[];
 		detailsUrl?: string;
+		cachedAt?: string;
 	}
 }
 

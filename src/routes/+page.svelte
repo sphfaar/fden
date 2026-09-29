@@ -1,10 +1,20 @@
 <script lang="ts">
 	import '../app.css';
-	import { error } from '@sveltejs/kit';
 	import { onMount, onDestroy, tick, untrack } from 'svelte';
 	// import { browser } from '$app/environment';
 	import { page } from '$app/state';
 	import { disableScrollHandling, afterNavigate } from '$app/navigation';
+	import {
+		asProductsData,
+		cachedPageFromProducts,
+		formatCacheSize,
+		isCacheableProducts,
+		mergeNextPage,
+		productsDataFromCachedPage,
+		queryCache,
+		type CachedPage,
+		type CachedQueryRecord
+	} from '$lib/queryCache.svelte';
 	import {
 		listFrequentQueries,
 		listRecentQueries,
@@ -27,11 +37,12 @@
 	import DataTable from '$lib/components/dataTable/DataTable.svelte';
 	import SrcSessionForm from '$lib/components/SrcSessionForm.svelte';
 	import { scrapingTypeColors } from '$lib/scarpingTypes';
-	import { SvelteMap } from 'svelte/reactivity';
+	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
 	import Search from '@lucide/svelte/icons/search';
 	import ListClock from '@lucide/svelte/icons/list-clock';
 	import ChartPie from '@lucide/svelte/icons/chart-pie';
+	import DatabaseZap from '@lucide/svelte/icons/database-zap';
 	import GripVertical from '@lucide/svelte/icons/grip-vertical';
 	import type { Component } from 'svelte';
 
@@ -90,7 +101,8 @@
 					crossCode: product.source_reference_code,
 					manufacturerName: product.manufacturer,
 					detailsUrl: product.detailsUrl,
-					thumbnails: product.thumbnails
+					thumbnails: product.thumbnails,
+					cachedAt: product.cachedAt
 				});
 			}
 		}
@@ -119,10 +131,17 @@
 
 	// let tableWorker: Worker | null = null;
 
+	const inFlightInitial = new SvelteSet<string>();
+	const refreshingSources = new SvelteSet<string>();
+	const loadedPages = new SvelteMap<string, number>();
+	const requestToken = new SvelteMap<string, number>();
+	let requestSerial = 0;
+	let productLoadCount = 0;
+	let appliedSearchKey = '';
+
 	function isSourceCardChecked(sourceID: string) {
-		return enabledSourceCards.find(
-			(enabledSC) => enabledSC.sourceDescriptors.sourceID === sourceID
-		)?.isChecked;
+		return enabledSourceCards.find((enabledSC) => enabledSC.sourceDescriptors.sourceID === sourceID)
+			?.isChecked;
 	}
 
 	// async function initTableWorker() {
@@ -133,75 +152,273 @@
 	// 	}
 	// }
 
-	async function loadInitialProducts(sourceID: string): Promise<void> {
-		const sourceDescs = data.newSrcsDescriptors.find(
-			(srcDesc) => srcDesc.sourceID === sourceID
-		);
+	function loadedKey(sourceID: string, query: string) {
+		return `${sourceID}\n${query}`;
+	}
+
+	function beginRequest(sourceID: string) {
+		const token = ++requestSerial;
+		requestToken.set(sourceID, token);
+		return token;
+	}
+
+	function stillCurrent(sourceID: string, token: number) {
+		return (requestToken.get(sourceID) ?? 0) === token;
+	}
+
+	function beginTableLoad() {
+		productLoadCount += 1;
 		isLoadingMoreProductsOnTable = true;
-		const enabledSC = enabledSourceCards.find(
-			(src) => src.sourceDescriptors.sourceID === sourceID
-		);
-		if (enabledSC) {
-			enabledSC.lastCodeQuery = code;
-			enabledSC.isDataLoaded = true;
+	}
+
+	function endTableLoad() {
+		productLoadCount = Math.max(0, productLoadCount - 1);
+		isLoadingMoreProductsOnTable = productLoadCount > 0;
+	}
+
+	function errorMessageFromBody(body: unknown, fallback: string) {
+		if (
+			body &&
+			typeof body === 'object' &&
+			'message' in body &&
+			typeof body.message === 'string' &&
+			body.message
+		) {
+			return body.message;
 		}
-		enabledSourceCards.forEach((enabledSC) => {
-			if (
-				enabledSC.isChecked &&
-				enabledSC.lastCodeQuery !== code &&
-				!enabledSC.isDataLoaded &&
-				enabledSC.sourceDescriptors.isLoggedIn !== false
-			)
-				loadInitialProducts(enabledSC.sourceDescriptors.sourceID);
-		});
-		const response = await fetch('/api/getNewProducts', {
+		return fallback;
+	}
+
+	async function postProducts(
+		path: '/api/getNewProducts' | '/api/getNextProducts',
+		payload: Record<string, unknown>
+	): Promise<ProductsData> {
+		const response = await fetch(path, {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({ sourceID, code, maxItems: maxItemsPerSrc })
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(payload)
 		});
-		if (!response) error(500, 'error fetching new products for initial load on page');
-		const responseData: Promise<ProductsData> = response.json();
-		if (sourceDescs) prodsFromSrcPromises.set(sourceDescs, responseData);
-		isLoadingMoreProductsOnTable = false;
+		const body: unknown = await response.json().catch(() => null);
+		const data = asProductsData(body);
+		if (!response.ok || !data) {
+			throw new Error(errorMessageFromBody(body, `error fetching products (${response.status})`));
+		}
+		return data;
+	}
+
+	function orderedCachedPages(record: CachedQueryRecord): CachedPage[] {
+		return [...record.pages].sort((a, b) => a.page - b.page);
+	}
+
+	function sourceDescriptorsFor(sourceID: string) {
+		return data.newSrcsDescriptors.find((srcDesc) => srcDesc.sourceID === sourceID);
+	}
+
+	// The map is keyed by descriptor object. A new search replaces that object, so drop the previous entry or the table shows both.
+	function setSourceProducts(sourceDescs: SourceDescriptors, promise: Promise<ProductsData>) {
+		for (const key of [...prodsFromSrcPromises.keys()]) {
+			if (key !== sourceDescs && key.sourceID === sourceDescs.sourceID) {
+				prodsFromSrcPromises.delete(key);
+			}
+		}
+		prodsFromSrcPromises.set(sourceDescs, promise);
+	}
+
+	function queryForSource(sourceID: string) {
+		const card = enabledSourceCards.find((src) => src.sourceDescriptors.sourceID === sourceID);
+		const query = (card?.lastCodeQuery ?? code).trim();
+		return codeRgx.test(query) ? query : code.trim();
+	}
+
+	async function loadInitialProducts(sourceID: string, query = code.trim()): Promise<void> {
+		if (!codeRgx.test(query)) return;
+		const sourceDescs = sourceDescriptorsFor(sourceID);
+		if (!sourceDescs) return;
+
+		const card = enabledSourceCards.find((src) => src.sourceDescriptors.sourceID === sourceID);
+		if (card) {
+			card.lastCodeQuery = query;
+			card.isDataLoaded = true;
+		}
+		for (const other of enabledSourceCards) {
+			if (other.sourceDescriptors.sourceID === sourceID) continue;
+			if (
+				other.isChecked &&
+				other.lastCodeQuery !== query &&
+				!other.isDataLoaded &&
+				other.sourceDescriptors.isLoggedIn !== false
+			) {
+				void loadInitialProducts(other.sourceDescriptors.sourceID, query);
+			}
+		}
+
+		const flightKey = `${sourceID}|${query}`;
+		if (inFlightInitial.has(flightKey)) return;
+		inFlightInitial.add(flightKey);
+		const token = beginRequest(sourceID);
+		beginTableLoad();
+		try {
+			const cached = await queryCache.get(sourceID, query);
+			const firstPage = cached ? orderedCachedPages(cached).find((page) => page.page === 1) : null;
+			if (firstPage) {
+				if (!stillCurrent(sourceID, token)) return;
+				loadedPages.set(loadedKey(sourceID, query), 1);
+				setSourceProducts(sourceDescs, Promise.resolve(productsDataFromCachedPage(firstPage)));
+				return;
+			}
+
+			const fresh = await postProducts('/api/getNewProducts', {
+				sourceID,
+				code: query,
+				maxItems: maxItemsPerSrc
+			});
+			if (!stillCurrent(sourceID, token)) return;
+			if (isCacheableProducts(fresh)) {
+				const page = cachedPageFromProducts(1, fresh, new Date().toISOString());
+				await queryCache.putPage(sourceID, query, page);
+				if (!stillCurrent(sourceID, token)) return;
+				loadedPages.set(loadedKey(sourceID, query), 1);
+				setSourceProducts(sourceDescs, Promise.resolve(productsDataFromCachedPage(page)));
+				return;
+			}
+			loadedPages.set(loadedKey(sourceID, query), 1);
+			setSourceProducts(sourceDescs, Promise.resolve(fresh));
+		} catch (err) {
+			console.error(err);
+			if (!stillCurrent(sourceID, token)) return;
+			const rejected = Promise.reject(err instanceof Error ? err : new Error(String(err)));
+			void rejected.catch(() => {});
+			setSourceProducts(sourceDescs, rejected);
+		} finally {
+			inFlightInitial.delete(flightKey);
+			endTableLoad();
+		}
+	}
+
+	function storedProductsFor(sourceID: string) {
+		const current = sourceDescriptorsFor(sourceID);
+		const direct = current ? prodsFromSrcPromises.get(current) : undefined;
+		if (direct && current) return { sourceDescs: current, promise: direct };
+		for (const [sourceDescs, promise] of prodsFromSrcPromises) {
+			if (sourceDescs.sourceID === sourceID) return { sourceDescs, promise };
+		}
+		return null;
 	}
 
 	async function loadNextProducts(sourceID: string) {
-		if (!prodsFromSrcPromises) return;
-		isLoadingMoreProductsOnTable = true;
-		const srcDescs = prodsFromSrcPromises
-			.keys()
-			.find((srcDescs) => srcDescs.sourceID === sourceID);
-		const oldScProdsData: ProductsData | undefined = srcDescs
-			? await prodsFromSrcPromises.get(srcDescs)
-			: undefined;
-		if (!oldScProdsData) return;
-		const { meta, products } = oldScProdsData;
-		try {
-			const response = await fetch('/api/getNextProducts', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({ sourceID, meta, code, maxItems: maxItemsPerSrc })
-			});
-			if (!response) error(500, 'error loading next products on page');
-			const responseData: ProductsData = await response.json();
-			const newProductsData: ProductsData = {
-				meta: {
-					...responseData.meta,
-					currentItemsDisplayed:
-						meta.currentItemsDisplayed + responseData.meta.currentItemsDisplayed
-				},
-				products: products.concat(responseData.products)
-			};
+		const query = queryForSource(sourceID);
+		if (!codeRgx.test(query)) return;
+		const stored = storedProductsFor(sourceID);
+		if (!stored || refreshingSources.has(sourceID)) return;
 
-			if (srcDescs) prodsFromSrcPromises.set(srcDescs, Promise.resolve(newProductsData));
-		} catch (error) {
-			console.error(error);
+		const token = requestToken.get(sourceID) ?? 0;
+		beginTableLoad();
+		try {
+			const oldProducts = await stored.promise;
+			if (!oldProducts || !stillCurrent(sourceID, token)) return;
+			const srcDescs = sourceDescriptorsFor(sourceID) ?? stored.sourceDescs;
+
+			const cached = await queryCache.get(sourceID, query);
+			const loaded = loadedPages.get(loadedKey(sourceID, query)) ?? 1;
+			const nextCached = cached
+				? orderedCachedPages(cached).find((page) => page.page === loaded + 1)
+				: null;
+			if (nextCached && loaded < (cached?.pagesFetched ?? 0)) {
+				if (!stillCurrent(sourceID, token)) return;
+				loadedPages.set(loadedKey(sourceID, query), loaded + 1);
+				setSourceProducts(
+					srcDescs,
+					Promise.resolve(mergeNextPage(oldProducts, productsDataFromCachedPage(nextCached)))
+				);
+				return;
+			}
+
+			const responseData = await postProducts('/api/getNextProducts', {
+				sourceID,
+				meta: oldProducts.meta,
+				code: query,
+				maxItems: maxItemsPerSrc
+			});
+			if (!stillCurrent(sourceID, token)) return;
+			if (!isCacheableProducts(responseData)) return;
+			const page = cachedPageFromProducts(loaded + 1, responseData, new Date().toISOString());
+			await queryCache.putPage(sourceID, query, page);
+			if (!stillCurrent(sourceID, token)) return;
+			loadedPages.set(loadedKey(sourceID, query), loaded + 1);
+			setSourceProducts(
+				srcDescs,
+				Promise.resolve(mergeNextPage(oldProducts, productsDataFromCachedPage(page)))
+			);
+		} catch (err) {
+			console.error(err);
 		} finally {
-			isLoadingMoreProductsOnTable = false;
+			endTableLoad();
+		}
+	}
+
+	async function refreshCachedQuery(sourceID: string): Promise<void> {
+		const typed = code.trim();
+		const query = codeRgx.test(typed) ? typed : queryForSource(sourceID);
+		if (!codeRgx.test(query)) return;
+		const sourceDescs = sourceDescriptorsFor(sourceID);
+		if (!sourceDescs || refreshingSources.has(sourceID)) return;
+
+		const card = enabledSourceCards.find((src) => src.sourceDescriptors.sourceID === sourceID);
+		if (card) {
+			card.lastCodeQuery = query;
+			card.isDataLoaded = true;
+		}
+
+		refreshingSources.add(sourceID);
+		const token = beginRequest(sourceID);
+		beginTableLoad();
+		try {
+			const existing = await queryCache.get(sourceID, query);
+			const targetPages = Math.max(existing?.pagesFetched ?? 0, 1);
+			const first = await postProducts('/api/getNewProducts', {
+				sourceID,
+				code: query,
+				maxItems: maxItemsPerSrc
+			});
+			if (!stillCurrent(sourceID, token)) return;
+			if (!isCacheableProducts(first)) {
+				console.error('refresh skipped uncacheable response', sourceID, first.meta.status);
+				return;
+			}
+
+			const pages: CachedPage[] = [cachedPageFromProducts(1, first, new Date().toISOString())];
+			let accumulated = productsDataFromCachedPage(pages[0]);
+			for (let pageNumber = 2; pageNumber <= targetPages; pageNumber += 1) {
+				const next = await postProducts('/api/getNextProducts', {
+					sourceID,
+					meta: accumulated.meta,
+					code: query,
+					maxItems: maxItemsPerSrc
+				});
+				if (!stillCurrent(sourceID, token)) return;
+				if (!isCacheableProducts(next)) {
+					console.error('refresh stopped on uncacheable page', sourceID, pageNumber);
+					return;
+				}
+				const page = cachedPageFromProducts(pageNumber, next, new Date().toISOString());
+				pages.push(page);
+				accumulated = mergeNextPage(accumulated, productsDataFromCachedPage(page));
+			}
+
+			await queryCache.replace(sourceID, query, pages);
+			if (!stillCurrent(sourceID, token)) return;
+			loadedPages.set(loadedKey(sourceID, query), pages.length);
+			const cardNow = enabledSourceCards.find((src) => src.sourceDescriptors.sourceID === sourceID);
+			if (cardNow) {
+				cardNow.lastCodeQuery = query;
+				cardNow.isDataLoaded = true;
+			}
+			setSourceProducts(sourceDescs, Promise.resolve(accumulated));
+		} catch (err) {
+			console.error(err);
+		} finally {
+			refreshingSources.delete(sourceID);
+			endTableLoad();
 		}
 	}
 
@@ -335,40 +552,36 @@
 		}
 	}
 
-	function updateSourceCardsLoadedStatsAfterSubmit() {
-		for (let i = 0; i < enabledSourceCards.length; i++) {
-			if (
-				page.url.searchParams.has(enabledSourceCards[i].sourceDescriptors.sourceID) &&
-				enabledSourceCards[i].sourceDescriptors.isLoggedIn !== false
-			) {
-				enabledSourceCards[i].lastCodeQuery = code;
-				enabledSourceCards[i].isDataLoaded = true;
-			}
-		}
-	}
-
 	async function addFulfilledProdsToSrc(
 		sourceDescs: SourceDescriptors,
 		prodsDataPromise: Promise<ProductsData>
 	) {
 		isLoadingTable = true;
-		prodsFromSrcFulfilled.set(prodsDataPromise, {
-			sourceDescriptors: sourceDescs,
-			productsData: await prodsDataPromise
-		});
-		isLoadingTable = false;
+		try {
+			const productsData = await prodsDataPromise;
+			prodsFromSrcFulfilled.set(prodsDataPromise, {
+				sourceDescriptors: sourceDescs,
+				productsData
+			});
+		} catch {
+			// SourceCard renders the rejection on the source card.
+		} finally {
+			isLoadingTable = false;
+		}
 	}
 
 	$effect(() => {
-		if (data.prodsFromSrcPromises) {
-			prodsFromSrcPromises.clear();
-			data.prodsFromSrcPromises.forEach((prodsData, sourceDescs) => {
-				prodsFromSrcPromises.set(sourceDescs, prodsData);
-			});
-			untrack(() => {
-				updateSourceCardsLoadedStatsAfterSubmit();
-			});
-		}
+		const query = page.url.searchParams.get('q') ?? '';
+		const selectedIds = data.newSrcsDescriptors
+			.filter((src) => page.url.searchParams.get(src.sourceID) === '1' && src.isLoggedIn !== false)
+			.map((src) => src.sourceID);
+		const key = `${query}|${selectedIds.join(',')}`;
+		if (!codeRgx.test(query) || selectedIds.length === 0) return;
+		untrack(() => {
+			if (appliedSearchKey === key) return;
+			appliedSearchKey = key;
+			for (const sourceID of selectedIds) void loadInitialProducts(sourceID, query);
+		});
 	});
 
 	$effect(() => {
@@ -379,7 +592,11 @@
 
 	$effect.pre(() => {
 		const descs = data.newSrcsDescriptors;
-		const currentCode = untrack(() => code);
+		const urlCode = page.url.searchParams.get('q') ?? '';
+		untrack(() => {
+			if (urlCode && urlCode !== code) code = urlCode;
+		});
+		const currentCode = untrack(() => (urlCode && codeRgx.test(urlCode) ? urlCode : code));
 		enabledSourceCards = descs.map((srcDesc) => {
 			const isDataSSRPreloaded: boolean =
 				(page.url.searchParams.get(srcDesc?.sourceID ?? '') === '1' ? true : false) &&
@@ -401,6 +618,7 @@
 
 	onMount(async () => {
 		legendSlider = loadLegendSlider();
+		await queryCache.open();
 		// if (tableWorker === null) initTableWorker();
 		// onDestroy(() => {
 		// 	if (tableWorker) tableWorker.terminate();
@@ -433,7 +651,24 @@
 		/>
 	{/each}
 </nav>
-<main class="mx-auto w-full bg-primary/5 pt-6">
+<main class="mx-auto w-full bg-primary/5">
+	<div
+		class="flex flex-wrap items-center gap-x-4 gap-y-2 px-8 pt-6 pb-4 text-sm text-primary lg:px-12"
+	>
+		<span class="inline-flex items-center gap-1.5">
+			<DatabaseZap size={16} />
+			<span class="font-bold tabular-nums">{queryCache.queryCount}</span>
+			cached queries
+		</span>
+		<span class="text-primary/80 tabular-nums">{formatCacheSize(queryCache.byteSize)}</span>
+		<button
+			type="button"
+			class="cursor-pointer border border-primary/60 px-2 py-0.5 text-xs hover:bg-primary/80 hover:text-background"
+			onclick={() => queryCache.purge()}
+		>
+			Purge cache
+		</button>
+	</div>
 	<form
 		method="GET"
 		bind:this={searchForm}
@@ -506,35 +741,32 @@
 			class="flex min-w-44 flex-wrap content-center gap-3 px-8 pt-7 pb-8 shadow-[0_3px_0_0] shadow-primary/5 lg:px-12"
 		>
 			{#each enabledSourceCards.filter((s) => s.sourceDescriptors.isLoggedIn === false || !s.isChecked) as disabledSC (disabledSC.sourceDescriptors.sourceID)}
-				{const metadataPromise = $derived(
-					sourceCardsMetadataPromises.get(disabledSC.sourceDescriptors.sourceID)
-				)}
 				<div
 					class={[
 						'flex grow flex-col gap-px bg-background transition-shadow',
 						disabledSC.isMouseOverScrapingType &&
-							scrapingTypeColors.get(disabledSC.sourceDescriptors.scrapingType)
-								?.style.shadow.bottom
+							scrapingTypeColors.get(disabledSC.sourceDescriptors.scrapingType)?.style.shadow.bottom
 					]}
 					in:receive={{ key: disabledSC.sourceDescriptors.sourceID }}
 					out:send={{ key: disabledSC.sourceDescriptors.sourceID }}
 					animate:flip={{ duration: 300 }}
 				>
+					{const metadataPromise = $derived(
+						sourceCardsMetadataPromises.get(disabledSC.sourceDescriptors.sourceID)
+					)}
 					<SourceCard
 						sourceDescriptors={disabledSC.sourceDescriptors}
 						metaDataPromise={metadataPromise}
 						{loadInitialProducts}
 						{loadNextProducts}
+						{refreshCachedQuery}
 						bind:isChecked={disabledSC.isChecked}
 						bind:isDataLoaded={disabledSC.isDataLoaded}
 						lastCodeQuery={disabledSC.lastCodeQuery}
 					/>
 					<span
-						class="h-ps {scrapingTypeColors.get(
-							disabledSC.sourceDescriptors.scrapingType
-						)?.style.bg} {disabledSC.sourceDescriptors.isLoggedIn === false
-							? 'opacity-20'
-							: ''}"
+						class="h-ps {scrapingTypeColors.get(disabledSC.sourceDescriptors.scrapingType)?.style
+							.bg} {disabledSC.sourceDescriptors.isLoggedIn === false ? 'opacity-20' : ''}"
 					></span>
 				</div>
 			{/each}
@@ -551,26 +783,26 @@
 			class="flex basis-auto flex-wrap content-center justify-center gap-4 border-b border-secondary/20 px-8 pt-8 pb-10 shadow-[0_-3px_0_0] shadow-primary/5 lg:px-12"
 		>
 			{#each enabledSourceCards.filter((s) => s.isChecked) as enabledSC (enabledSC.sourceDescriptors.sourceID)}
-				{const metadataPromise = $derived(
-					sourceCardsMetadataPromises.get(enabledSC.sourceDescriptors.sourceID)
-				)}
 				<div
 					class={[
 						'transition-shadow',
 						enabledSC.isMouseOverScrapingType
-							? scrapingTypeColors.get(enabledSC.sourceDescriptors.scrapingType)
-									?.style.shadow.top
+							? scrapingTypeColors.get(enabledSC.sourceDescriptors.scrapingType)?.style.shadow.top
 							: 'bg-background'
 					]}
 					in:receive={{ key: enabledSC.sourceDescriptors.sourceID }}
 					out:send={{ key: enabledSC.sourceDescriptors.sourceID }}
 					animate:flip={{ duration: 300 }}
 				>
+					{const metadataPromise = $derived(
+						sourceCardsMetadataPromises.get(enabledSC.sourceDescriptors.sourceID)
+					)}
 					<SourceCard
 						sourceDescriptors={enabledSC.sourceDescriptors}
 						metaDataPromise={metadataPromise}
 						{loadInitialProducts}
 						{loadNextProducts}
+						{refreshCachedQuery}
 						bind:isChecked={enabledSC.isChecked}
 						bind:isDataLoaded={enabledSC.isDataLoaded}
 						lastCodeQuery={enabledSC.lastCodeQuery}
@@ -621,9 +853,7 @@
 				type="button"
 				class={[
 					'cursor-pointer border px-2 py-0.5 text-sm whitespace-nowrap transition-colors hover:bg-primary/80 hover:text-background',
-					code === entry.q
-						? 'border-primary bg-primary/20'
-						: 'border-primary/50 bg-background'
+					code === entry.q ? 'border-primary bg-primary/20' : 'border-primary/50 bg-background'
 				]}
 				onclick={() => searchFromEntry(entry)}
 			>

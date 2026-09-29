@@ -6,7 +6,8 @@ export const DEFAULT_COLUMN_ORDER = [
 	'crossCode',
 	'manufacturerName',
 	'thumbnails',
-	'detailsUrl'
+	'detailsUrl',
+	'cachedAt'
 ] as const;
 
 export type DataTableColumnId = (typeof DEFAULT_COLUMN_ORDER)[number];

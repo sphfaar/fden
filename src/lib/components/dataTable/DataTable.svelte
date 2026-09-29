@@ -86,6 +86,13 @@
 		isHighlight: boolean;
 	}
 
+	function formatCachedAtLocal(value: string): string {
+		const date = new Date(value);
+		if (Number.isNaN(date.getTime())) return value;
+		const pad2 = (part: number) => String(part).padStart(2, '0');
+		return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`;
+	}
+
 	function highlight(original: string, filter: string): HighlightPart[] {
 		if (!filter) return [{ text: original, isHighlight: false }];
 
@@ -203,6 +210,14 @@
 			id: 'detailsUrl',
 			enableSorting: false,
 			cell: ({ row }) => renderSnippet(detailsCell, { href: row.original.detailsUrl })
+		}),
+		columnHelper.accessor((row) => row.cachedAt ?? '', {
+			id: 'cachedAt',
+			header: 'Cached',
+			enableGlobalFilter: false,
+			sortFn: 'text',
+			sortDescFirst: true,
+			cell: (info) => renderSnippet(cachedAtCell, { value: info.getValue() })
 		})
 	]);
 
@@ -318,6 +333,14 @@
 	{#if href}
 		<!-- eslint-disable svelte/no-navigation-without-resolve -->
 		<a {href} target="_blank" rel="noopener noreferrer">🔗</a>
+	{/if}
+{/snippet}
+
+{#snippet cachedAtCell({ value }: { value: string })}
+	{#if value}
+		<time class="text-xs whitespace-nowrap tabular-nums" datetime={value}
+			>{formatCachedAtLocal(value)}</time
+		>
 	{/if}
 {/snippet}
 

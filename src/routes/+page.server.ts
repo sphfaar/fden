@@ -26,37 +26,8 @@ export const load: PageServerLoad = ({ url, locals }) => {
 				}))
 			: sourcesDescriptors;
 
-	if (productCode) {
-		const queryRegex = /^[\w.\-/]{3,32}$/;
-		if (!queryRegex.test(productCode)) {
-			error(400, 'Bad Product Code Request');
-		}
-
-		const prodsFromSrcPromises: ProductsFromSourcePromises = new Map();
-
-		newSrcsDescriptors
-			.filter((srcDescriptors) => {
-				return (
-					url.searchParams.get(srcDescriptors.sourceID) === '1' &&
-					srcDescriptors.isLoggedIn !== false
-				);
-			})
-			.forEach((srcDescriptors) => {
-				const maybeSessionToken: string | null =
-					srcSessionTokens.find((token) => token.name === srcDescriptors.sourceID)
-						?.name ?? null;
-				prodsFromSrcPromises.set(
-					srcDescriptors,
-					sourcesGetters?.[srcDescriptors.sourceID].getProducts(
-						productCode,
-						1000,
-						{ showPerfReqProxyToSource: true },
-						1,
-						{ sessionToken: maybeSessionToken ?? undefined }
-					)
-				);
-			});
-		return { newSrcsDescriptors, prodsFromSrcPromises };
+	if (productCode && !/^[\w.\-/]{3,32}$/.test(productCode)) {
+		error(400, 'Bad Product Code Request');
 	}
 	return { newSrcsDescriptors };
 };

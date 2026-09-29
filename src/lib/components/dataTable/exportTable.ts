@@ -48,7 +48,8 @@ export function toExportRows(products: ProductOfTable[]) {
 		Source: product.source.name,
 		'Manufacturer Code': product.manufacturerCode,
 		'Cross Code': product.crossCode,
-		'Manufacturer Name': product.manufacturerName
+		'Manufacturer Name': product.manufacturerName,
+		Cached: product.cachedAt ?? ''
 	}));
 }
 

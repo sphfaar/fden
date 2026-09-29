@@ -4,6 +4,8 @@
 	import File from '@lucide/svelte/icons/file';
 	import ListPlus from '@lucide/svelte/icons/list-plus';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
+	import RotateCwClock from '@lucide/svelte/icons/rotate-cw-clock';
+	import { queryCache } from '$lib/queryCache.svelte';
 	import { scrapingTypeColors } from '$lib/scarpingTypes';
 
 	let {
@@ -11,6 +13,7 @@
 		metaDataPromise,
 		loadInitialProducts,
 		loadNextProducts,
+		refreshCachedQuery,
 		isChecked = $bindable(),
 		isDataLoaded = $bindable(),
 		lastCodeQuery
@@ -19,14 +22,30 @@
 		metaDataPromise: Promise<MetaData> | undefined;
 		loadNextProducts: (sourceID: string) => Promise<void>;
 		loadInitialProducts: (sourceID: string) => Promise<void>;
+		refreshCachedQuery: (sourceID: string) => Promise<void>;
 		isChecked: boolean;
 		isDataLoaded: boolean;
 		lastCodeQuery: string | null;
 	} = $props();
 
 	let isLoadingNextProducts = $state(false);
+	let isRefreshingCache = $state(false);
 	let metaData = $state<MetaData | null>(null);
 	let errorMessage = $state<string | null>(null);
+	let sourceCache = $derived(queryCache.bySource[sourceDescriptors.sourceID]);
+	let queryCachedAt = $derived(
+		lastCodeQuery ? (sourceCache?.newestByCode[lastCodeQuery] ?? null) : null
+	);
+	let queryCacheLocal = $derived.by(() => {
+		if (!queryCachedAt) return null;
+		const date = new Date(queryCachedAt);
+		if (Number.isNaN(date.getTime())) return null;
+		const pad2 = (value: number) => String(value).padStart(2, '0');
+		return {
+			day: `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`,
+			time: `${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`
+		};
+	});
 
 	let nextLoadStatus = $derived.by<
 		| 'full'
@@ -113,6 +132,18 @@
 		isLoadingNextProducts = false;
 	}
 
+	async function handleRefreshCache(event: MouseEvent) {
+		event.preventDefault();
+		event.stopPropagation();
+		if (isRefreshingCache) return;
+		isRefreshingCache = true;
+		try {
+			await refreshCachedQuery(sourceDescriptors.sourceID);
+		} finally {
+			isRefreshingCache = false;
+		}
+	}
+
 	async function initLoad() {
 		try {
 			metaData = (await metaDataPromise) ?? null;
@@ -138,11 +169,12 @@
 </script>
 
 <button
+	type="button"
 	disabled={sourceDescriptors.isLoggedIn === false}
 	class="grid h-full cursor-pointer content-stretch items-center justify-center border transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:opacity-20
   {!isChecked || isDataLoaded ? 'border-solid' : 'border-dashed'}
   {isChecked
-		? `source-card-checked w-xs ${
+		? `source-card-checked w-[min(100%,34rem)] ${
 				errorMessage
 					? 'border-error bg-error/5 text-error hover:bg-error/10'
 					: 'border-primary hover:bg-primary/10'
@@ -177,14 +209,14 @@
 	{/if}
 
 	{#if isChecked}
+		{@render cacheColumn()}
 		{#if metaDataPromise}
 			{#if metaData}
 				<!-- N.Items/Total or error message -->
 				<samp class="mt-2 ml-4 pr-2 text-end text-lg">
 					{#if !errorMessage}
 						{#if metaData?.maxItemsPagination && metaData?.totalItems}
-							<span class="font-bold">{metaData.currentItemsDisplayed}</span><span
-								class="text-xs"
+							<span class="font-bold">{metaData.currentItemsDisplayed}</span><span class="text-xs"
 								>/{metaData.totalItems}
 							</span>
 						{:else}
@@ -203,9 +235,7 @@
 
 				<!-- Progress to FULL -->
 				{@render progressToFULL(
-					metaData.pages && nextLoadStatus !== 'full'
-						? metaData.page / metaData.pages
-						: 1,
+					metaData.pages && nextLoadStatus !== 'full' ? metaData.page / metaData.pages : 1,
 					metaData.pages
 						? { fill: 'var(--color-secondary)' }
 						: { stroke: 'var(--color-secondary)' },
@@ -215,9 +245,7 @@
 				<!-- Loading More Button -->
 				{@render buttonLoadMore(metaData ?? undefined)}
 			{:else if errorMessage}
-				<p
-					class="col-span-1 row-span-2 ml-4 h-7 overflow-auto text-left text-xs text-error"
-				>
+				<p class="col-span-1 row-span-2 ml-4 h-7 overflow-auto text-left text-xs text-error">
 					{errorMessage}
 				</p>
 				{@render progressToFULL(
@@ -232,8 +260,7 @@
 			<span
 				class="col-span-1 mt-[0.08rem] inline-flex items-center gap-0 self-start text-[0.55rem] font-black {errorMessage
 					? 'text-inherit'
-					: 'text-secondary'}"
-				><Antenna class="mx-0.5 inline h-2 w-2" />{metaData?.status}</span
+					: 'text-secondary'}"><Antenna class="mx-0.5 inline h-2 w-2" />{metaData?.status}</span
 			>
 			<span
 				class="w-11/12 text-start text-[0.55rem] font-medium {errorMessage
@@ -242,8 +269,8 @@
 			>
 				{#if isDataLoaded}
 					<span class="perf-text inline-flex items-center text-nowrap"
-						><ArrowRightLeft class="mx-0.5 inline h-2 w-2" />{metaData
-							?.performanceTimings?.proxyToSource} ms</span
+						><ArrowRightLeft class="mx-0.5 inline h-2 w-2" />{metaData?.performanceTimings
+							?.proxyToSource} ms</span
 					>
 				{:else if lastCodeQuery}
 					({lastCodeQuery}) ━━ OLD ━━
@@ -280,11 +307,13 @@
 			: true
 	)}
 	<button
+		type="button"
 		class="row-span-2 flex size-full cursor-pointer flex-col place-content-center items-center border-l border-primary bg-primary/10 hover:bg-primary/20 hover:text-primary disabled:bg-transparent disabled:bg-cover disabled:opacity-70"
 		style={isDisabled
 			? `background-image: repeating-linear-gradient(-45deg, transparent 0 8px, var(--color-primary) 8px 16px);`
 			: ''}
 		onclick={(e) => {
+			e.preventDefault();
 			e.stopPropagation();
 			handleLoadingNextProducts(sourceDescriptors.sourceID);
 		}}
@@ -331,9 +360,11 @@
 
 {#snippet buttonError()}
 	<button
+		type="button"
 		class="row-span-2 flex size-full cursor-pointer flex-col place-content-center items-center border-l border-error bg-error/10 hover:bg-error/20 hover:text-error"
 		style="background-image:repeating-linear-gradient(-45deg, transparent 0 8px, var(--color-error) 8px 34px);"
 		onclick={(e) => {
+			e.preventDefault();
 			e.stopPropagation();
 			handleLoadingNextProducts(sourceDescriptors.sourceID);
 		}}
@@ -375,12 +406,41 @@
 	</svg>
 {/snippet}
 
-{#snippet loader(enabled: boolean)}
-	<p
-		class="col-span-2 row-span-2 mb-2 {enabled
-			? 'mt-1'
-			: 'mt-0.5'} text-xs text-primary/50"
+{#snippet cacheColumn()}
+	<button
+		type="button"
+		class="group relative col-start-5 row-span-2 row-start-1 flex size-full min-w-0 cursor-pointer flex-col items-center justify-center gap-1 self-stretch border-l border-primary/40 px-1 text-center leading-none hover:bg-primary/20 disabled:cursor-wait disabled:opacity-60"
+		aria-label={queryCacheLocal
+			? `Refresh cached query from source, ${queryCacheLocal.day} ${queryCacheLocal.time}`
+			: 'Refresh cached query from source'}
+		disabled={isRefreshingCache}
+		onpointerdown={(event) => event.stopPropagation()}
+		onclick={handleRefreshCache}
 	>
+		<time
+			class="text-[0.65rem] font-medium text-secondary/90 tabular-nums"
+			datetime={queryCachedAt ?? undefined}
+		>
+			{queryCacheLocal?.day ?? '—'}
+		</time>
+		{#if isRefreshingCache}
+			<LoaderCircle class="h-3.5 w-3.5 animate-spin" />
+		{:else}
+			<RotateCwClock class="h-3.5 w-3.5" />
+		{/if}
+		{#if queryCacheLocal}
+			<span
+				class="pointer-events-none absolute bottom-[calc(100%+0.25rem)] left-1/2 z-40 -translate-x-1/2 border border-primary/50 bg-background px-1.5 py-0.5 text-[0.65rem] whitespace-nowrap text-primary tabular-nums opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+				role="tooltip"
+			>
+				{queryCacheLocal.time}
+			</span>
+		{/if}
+	</button>
+{/snippet}
+
+{#snippet loader(enabled: boolean)}
+	<p class="col-span-2 row-span-2 mb-2 {enabled ? 'mt-1' : 'mt-0.5'} text-xs text-primary/50">
 		(loading)
 	</p>
 	<LoaderCircle class="row-span-2 animate-spin" />
@@ -388,7 +448,9 @@
 
 <style lang="postcss">
 	.source-card-checked {
-		grid-template-columns: 1rem 40px auto 1fr 1rem 3.5rem;
+		grid-template-columns:
+			1rem 40px minmax(0, auto) minmax(0, 1fr) minmax(4.6rem, 5.4rem)
+			1rem 3.5rem;
 		grid-template-rows: 1fr 1rem;
 	}
 	.perf-text {

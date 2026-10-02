@@ -1,7 +1,7 @@
 import type { GetNextProducts, GetProducts } from '../types';
 import type ResponseSchema from './ResponseSchema';
 import { getJsonToProducts } from '../getJsonToProductsData.server';
-import { headers } from '$lib/product_sources/constants';
+import { headers } from '#lib/product_sources/constants.js';
 
 export const getProducts: GetProducts = async (code, maxItems, config) => {
 	const nItems = Math.min(maxItems, 100);

@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { headers } from '$lib/product_sources/constants';
+import { headers } from '#lib/product_sources/constants.js';
 import type { GetNextProducts, GetProducts } from '../types';
 
 export const getProducts: GetProducts = async (code: string) => {

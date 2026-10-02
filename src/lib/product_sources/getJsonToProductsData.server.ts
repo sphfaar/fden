@@ -1,7 +1,7 @@
 import type { AxiosRequestConfig } from 'axios';
 import type { GetProductsConfig } from './types';
 import { error } from '@sveltejs/kit';
-import axios from '$lib/product_sources/axios.server';
+import axios from '#lib/product_sources/axios.server.js';
 
 interface ParsingFunctions<T> {
 	rowsIterator: (resData: T) => Product[];

@@ -1,5 +1,5 @@
-import { headers } from '$lib/product_sources/constants';
-import { createAxios } from '$lib/product_sources/axios.server';
+import { headers } from '#lib/product_sources/constants.js';
+import { createAxios } from '#lib/product_sources/axios.server.js';
 import { wrapper } from 'axios-cookiejar-support';
 import { CookieJar } from 'tough-cookie';
 import type { GetNextProducts, GetProducts } from '../types';

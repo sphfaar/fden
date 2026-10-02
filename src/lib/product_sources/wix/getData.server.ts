@@ -1,7 +1,7 @@
 import type { GetNextProducts, GetProducts } from '../types';
 import { error } from '@sveltejs/kit';
 import { getHtmlToProducts } from '../getHtmlToProductsData.server';
-import { headers } from '$lib/product_sources/constants';
+import { headers } from '#lib/product_sources/constants.js';
 
 export const getProducts: GetProducts = async (code, maxItems, config) => {
 	const nItems = Math.min(maxItems, Infinity);

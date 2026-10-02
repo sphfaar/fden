@@ -1,7 +1,7 @@
 import type { GetProductsConfig } from './types';
 import type { AxiosRequestConfig } from 'axios';
 import { error } from '@sveltejs/kit';
-import axios from '$lib/product_sources/axios.server';
+import axios from '#lib/product_sources/axios.server.js';
 import { parseHTML } from 'linkedom';
 
 interface ParsingFunctions<T> {

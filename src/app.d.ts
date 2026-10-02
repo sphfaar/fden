@@ -2,12 +2,8 @@
 // for information about these interfaces
 declare global {
 	namespace App {
-		interface Platform {
-			env: Env;
-			ctx: ExecutionContext;
-			caches: CacheStorage;
-			cf?: IncomingRequestCfProperties;
-		}
+		// adapter-cloudflare 8 no longer sets event.platform.
+		// Use `import { env, waitUntil } from 'cloudflare:workers'`, `request.cf`, and global `caches`.
 		interface Locals {
 			srcSessions: {
 				name: string;

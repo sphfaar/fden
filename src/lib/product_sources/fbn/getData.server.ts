@@ -1,7 +1,7 @@
 import type { GetProducts, GetNextProducts } from '../types';
 import { error, fail, type ActionFailure } from '@sveltejs/kit';
-import { getHtmlToProducts } from '$lib/product_sources/getHtmlToProductsData.server';
-import { headers } from '$lib/product_sources/constants';
+import { getHtmlToProducts } from '#lib/product_sources/getHtmlToProductsData.server.js';
+import { headers } from '#lib/product_sources/constants.js';
 
 export async function getSession(
 	username: string,

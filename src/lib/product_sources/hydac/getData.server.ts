@@ -1,6 +1,6 @@
 import { getJsonToProducts } from '../getJsonToProductsData.server';
 import { getProductThumbnails } from '../getProductsThumbnails.server';
-import { headers } from '$lib/product_sources/constants';
+import { headers } from '#lib/product_sources/constants.js';
 import type { GetNextProducts, GetProducts } from '../types';
 import type ResponseSchema from './ResponseSchema';
 

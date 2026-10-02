@@ -5,8 +5,8 @@
 	import ListPlus from '@lucide/svelte/icons/list-plus';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import RotateCwClock from '@lucide/svelte/icons/rotate-cw-clock';
-	import { queryCache } from '$lib/queryCache.svelte';
-	import { scrapingTypeColors } from '$lib/scarpingTypes';
+	import { queryCache } from '#lib/queryCache.svelte.js';
+	import { scrapingTypeColors } from '#lib/scarpingTypes.js';
 
 	let {
 		sourceDescriptors,

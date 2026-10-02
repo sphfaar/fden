@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { scrapingTypeColors } from '$lib/scarpingTypes';
+	import { scrapingTypeColors } from '#lib/scarpingTypes.js';
 
 	let {
 		enabledSourceCards = $bindable()

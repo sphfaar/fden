@@ -1,8 +1,8 @@
 import type ResponseSchema from './ResponseSchema';
 import type { GetNextProducts, GetProducts } from '../types';
 import { error } from '@sveltejs/kit';
-import { getHtmlToProducts } from '$lib/product_sources/getHtmlToProductsData.server';
-import { headers } from '$lib/product_sources/constants';
+import { getHtmlToProducts } from '#lib/product_sources/getHtmlToProductsData.server.js';
+import { headers } from '#lib/product_sources/constants.js';
 
 export const getProducts: GetProducts = async (code: string, maxItems, config) => {
 	const nItems = Math.min(maxItems, Infinity);

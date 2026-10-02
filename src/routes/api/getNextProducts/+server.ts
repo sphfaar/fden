@@ -1,6 +1,6 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { error, json } from '@sveltejs/kit';
-import { sourcesGetters } from '$lib/product_sources';
+import { error } from '@sveltejs/kit';
+import { sourcesGetters } from '#lib/product_sources/index.js';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	interface RequestData {
@@ -20,7 +20,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			meta.currentItemsDisplayed > meta.totalItems) ||
 		(meta.pages && meta.page >= meta.pages)
 	)
-		return json('reached max items to display ');
+		return Response.json('reached max items to display ');
 
 	const sourceOfData = sourcesGetters[sourceID];
 
@@ -39,9 +39,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	);
 
 	if (!productsData) error(500, 'error fetching products getting products on getNextProducts API');
-	return json(productsData);
+	return Response.json(productsData);
 };
 
 export const fallback: RequestHandler = async ({ request }) => {
-	return json(`I caught your bad ${request.method} request!`);
+	return Response.json(`I caught your bad ${request.method} request!`);
 };

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { onMount, onDestroy, tick, untrack } from 'svelte';
-	// import { browser } from '$app/environment';
+	// import { browser } from '$app/env';
 	import { page } from '$app/state';
 	import { disableScrollHandling, afterNavigate } from '$app/navigation';
 	import {
@@ -14,7 +14,7 @@
 		queryCache,
 		type CachedPage,
 		type CachedQueryRecord
-	} from '$lib/queryCache.svelte';
+	} from '#lib/queryCache.svelte.js';
 	import {
 		listFrequentQueries,
 		listRecentQueries,
@@ -22,21 +22,21 @@
 		recordSearch,
 		SEARCH_HISTORY_KEY,
 		type SearchEntry
-	} from '$lib/searchHistory';
+	} from '#lib/searchHistory.js';
 	import {
 		DEFAULT_LEGEND_SLIDER,
 		LEGEND_SLIDER_KEY,
 		loadLegendSlider,
 		saveLegendSlider
-	} from '$lib/legendSlider';
+	} from '#lib/legendSlider.js';
 	import { quintOut } from 'svelte/easing';
 	import { crossfade } from 'svelte/transition';
 	import { flip } from 'svelte/animate';
-	import ButtonsByScrapingType from '$lib/components/ButtonsByScrapingType.svelte';
-	import SourceCard from '$lib/components/SourceCard.svelte';
-	import DataTable from '$lib/components/dataTable/DataTable.svelte';
-	import SrcSessionForm from '$lib/components/SrcSessionForm.svelte';
-	import { scrapingTypeColors } from '$lib/scarpingTypes';
+	import ButtonsByScrapingType from '#lib/components/ButtonsByScrapingType.svelte';
+	import SourceCard from '#lib/components/SourceCard.svelte';
+	import DataTable from '#lib/components/dataTable/DataTable.svelte';
+	import SrcSessionForm from '#lib/components/SrcSessionForm.svelte';
+	import { scrapingTypeColors } from '#lib/scarpingTypes.js';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
 	import Search from '@lucide/svelte/icons/search';
@@ -146,7 +146,7 @@
 
 	// async function initTableWorker() {
 	// 	if (browser && window.Worker) {
-	// 		const Worker = await import('$lib/tableWorker?worker');
+	// 		const Worker = await import('#lib/tableWorker?worker');
 	// 		if (!Worker) error(500, 'worker creation error on page');
 	// 		tableWorker = new Worker.default();
 	// 	}
@@ -611,7 +611,9 @@
 		});
 	});
 
-	afterNavigate(() => {
+	afterNavigate(({ shallow }) => {
+		if (shallow) return;
+
 		disableScrollHandling();
 		searchEntries = loadSearchEntries();
 	});

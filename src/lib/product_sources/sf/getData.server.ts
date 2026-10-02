@@ -2,7 +2,7 @@ import type ResponseSchema from './ResponseSchema';
 import type { GetProducts, GetNextProducts } from '../types';
 import { error } from '@sveltejs/kit';
 import { getJsonToProducts } from '../getJsonToProductsData.server';
-import { headers } from '$lib/product_sources/constants';
+import { headers } from '#lib/product_sources/constants.js';
 
 export const getProducts: GetProducts = (code, maxItems, config, page = 1) => {
 	const nItems = Math.min(maxItems, Infinity);

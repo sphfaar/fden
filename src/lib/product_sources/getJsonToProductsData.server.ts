@@ -1,6 +1,6 @@
 import type { AxiosRequestConfig } from 'axios';
 import type { GetProductsConfig } from './types';
-import { error } from '@sveltejs/kit';
+import { failSourceRequest } from '#lib/product_sources/sourceError.server.js';
 import axios from '#lib/product_sources/axios.server.js';
 
 interface ParsingFunctions<T> {
@@ -56,6 +56,6 @@ export async function getJsonToProducts<T>(
 			products: products
 		};
 	} catch (err) {
-		error(500, `${sourceID} ${err}`);
+		failSourceRequest(err, `${sourceID} error`);
 	}
 }

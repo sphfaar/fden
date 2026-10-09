@@ -1,4 +1,4 @@
-import { error } from '@sveltejs/kit';
+import { failSourceRequest } from '#lib/product_sources/sourceError.server.js';
 import { headers } from '#lib/product_sources/constants.js';
 import type { GetNextProducts, GetProducts } from '../types';
 
@@ -14,7 +14,7 @@ export const getProducts: GetProducts = async (code: string) => {
 		const data: ProductsData = await res.json();
 		return data;
 	} catch (err) {
-		error(500, `Irkon error: ${err}`);
+		failSourceRequest(err, 'Ikron error');
 	}
 };
 

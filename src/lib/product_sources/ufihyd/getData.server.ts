@@ -1,5 +1,5 @@
 import type { GetNextProducts, GetProducts } from '../types';
-import { error } from '@sveltejs/kit';
+import { failSourceRequest } from '#lib/product_sources/sourceError.server.js';
 import { getHtmlToProducts } from '../getHtmlToProductsData.server';
 import { headers } from '#lib/product_sources/constants.js';
 import { catalogHttpsUrl } from '#lib/safeCatalogUrl.js';
@@ -45,7 +45,7 @@ export const getProducts: GetProducts = async (code, maxItems, config) => {
 			config
 		);
 	} catch (err) {
-		error(500, `UFI hyd. error: ${err}`);
+		failSourceRequest(err, 'UFI hyd. error');
 	}
 };
 export const getNextProducts: GetNextProducts = () => null;

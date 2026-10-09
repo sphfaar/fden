@@ -1,5 +1,5 @@
 import type { GetNextProducts, GetProducts } from '../types';
-import { error } from '@sveltejs/kit';
+import { failSourceRequest } from '#lib/product_sources/sourceError.server.js';
 import { getHtmlToProducts } from '../getHtmlToProductsData.server';
 import { headers } from '#lib/product_sources/constants.js';
 
@@ -54,7 +54,7 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 			page
 		);
 	} catch (err) {
-		error(500, `MPfiltriUSA error: ${err}`);
+		failSourceRequest(err, 'MPfiltriUSA error');
 	}
 };
 export const getNextProducts: GetNextProducts = () => null;

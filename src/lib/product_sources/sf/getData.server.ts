@@ -1,6 +1,6 @@
 import type ResponseSchema from './ResponseSchema';
 import type { GetProducts, GetNextProducts } from '../types';
-import { error } from '@sveltejs/kit';
+import { failSourceRequest } from '#lib/product_sources/sourceError.server.js';
 import { getJsonToProducts } from '../getJsonToProductsData.server';
 import { headers } from '#lib/product_sources/constants.js';
 import { catalogHttpsUrl } from '#lib/safeCatalogUrl.js';
@@ -54,7 +54,7 @@ export const getProducts: GetProducts = (code, maxItems, config, page = 1) => {
 			page
 		);
 	} catch (err) {
-		error(500, `SF error: ${err}`);
+		failSourceRequest(err, 'SF error');
 	}
 };
 

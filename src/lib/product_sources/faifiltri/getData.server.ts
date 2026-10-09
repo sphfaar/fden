@@ -1,5 +1,5 @@
 import type { GetNextProducts, GetProducts } from '../types';
-import { error } from '@sveltejs/kit';
+import { failSourceRequest } from '#lib/product_sources/sourceError.server.js';
 import { getHtmlToProducts } from '#lib/product_sources/getHtmlToProductsData.server.js';
 import { headers } from '#lib/product_sources/constants.js';
 
@@ -43,7 +43,7 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 			page
 		);
 	} catch (err) {
-		error(500, `Faifiltri error: ${err}`);
+		failSourceRequest(err, 'Faifiltri error');
 	}
 };
 

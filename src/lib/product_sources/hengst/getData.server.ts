@@ -1,5 +1,5 @@
 import type { GetProducts, GetNextProducts } from '../types';
-import { error } from '@sveltejs/kit';
+import { failSourceRequest } from '#lib/product_sources/sourceError.server.js';
 import { getHtmlToProducts } from '../getHtmlToProductsData.server';
 import { headers } from '#lib/product_sources/constants.js';
 import { catalogHttpsUrl } from '#lib/safeCatalogUrl.js';
@@ -153,7 +153,7 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 		// 	products: products
 		// };
 	} catch (err) {
-		error(500, `Hengst error: ${err}`);
+		failSourceRequest(err, 'Hengst error');
 	}
 };
 

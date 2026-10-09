@@ -1,6 +1,6 @@
 import type { GetProductsConfig } from './types';
 import type { AxiosRequestConfig } from 'axios';
-import { error } from '@sveltejs/kit';
+import { failSourceRequest } from '#lib/product_sources/sourceError.server.js';
 import axios from '#lib/product_sources/axios.server.js';
 import { parseHTML } from 'linkedom';
 
@@ -70,6 +70,6 @@ export async function getHtmlToProducts<T>(
 			products: products
 		};
 	} catch (err) {
-		error(500, `${sourceID} error: ${err}`);
+		failSourceRequest(err, `${sourceID} error`);
 	}
 }

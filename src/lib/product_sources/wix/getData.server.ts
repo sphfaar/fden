@@ -1,5 +1,5 @@
 import type { GetNextProducts, GetProducts } from '../types';
-import { error } from '@sveltejs/kit';
+import { failSourceRequest } from '#lib/product_sources/sourceError.server.js';
 import { getHtmlToProducts } from '../getHtmlToProductsData.server';
 import { headers } from '#lib/product_sources/constants.js';
 
@@ -42,7 +42,7 @@ export const getProducts: GetProducts = async (code, maxItems, config) => {
 			config
 		);
 	} catch (err) {
-		error(500, `WIX error: ${err}`);
+		failSourceRequest(err, 'WIX error');
 	}
 };
 export const getNextProducts: GetNextProducts = () => null;

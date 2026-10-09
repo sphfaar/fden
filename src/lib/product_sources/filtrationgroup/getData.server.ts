@@ -1,6 +1,6 @@
 import type ResponseSchema from './ResponseSchema';
 import type { GetNextProducts, GetProducts } from '../types';
-import { error } from '@sveltejs/kit';
+import { failSourceRequest } from '#lib/product_sources/sourceError.server.js';
 import { getHtmlToProducts } from '#lib/product_sources/getHtmlToProductsData.server.js';
 import { headers } from '#lib/product_sources/constants.js';
 import { catalogHttpsUrl } from '#lib/safeCatalogUrl.js';
@@ -59,7 +59,7 @@ export const getProducts: GetProducts = async (code: string, maxItems, config) =
 			config
 		);
 	} catch (err) {
-		error(500, `Filtration Group error: ${err}`);
+		failSourceRequest(err, 'Filtration Group error');
 	}
 };
 export const getNextProducts: GetNextProducts = () => null;

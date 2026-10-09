@@ -33,25 +33,18 @@ export const load: PageServerLoad = ({ url, locals }) => {
 };
 
 export const actions = {
-	createSrcSession: async ({ cookies, request }) => {
+	createSrcSession: async ({ cookies, request, url }) => {
 		const data = await request.formData();
 		if (!data) error(500, 'create session form data error');
 		const sourceID = String(data.get('sourceID'));
 		const username = String(data.get('username'));
 		const password = String(data.get('password'));
 
-		if (
-			typeof sourceID !== 'string' ||
-			typeof username !== 'string' ||
-			typeof password !== 'string' ||
-			!username ||
-			!password
-		) {
+		const getSession = sourcesGetters[sourceID]?.getSession;
+		if (!getSession || !username || !password) {
 			return fail(400, { invalid: true });
 		}
-		const token = sourcesGetters?.[sourceID].getSession
-			? await sourcesGetters?.[sourceID].getSession(username, password)
-			: null;
+		const token = await getSession(username, password);
 		if (!token) error(500, 'token create error');
 
 		if (typeof token === 'string') {
@@ -61,7 +54,8 @@ export const actions = {
 				httpOnly: true,
 				// only requests from same site can send cookies
 				sameSite: 'strict',
-				secure: false,
+				// local Vite is http; production is https
+				secure: url.protocol === 'https:',
 				maxAge: 60 * 60
 			});
 		} else {
@@ -72,18 +66,18 @@ export const actions = {
 		return { sessionCreatedSuccess: true };
 	},
 
-	terminateSrcSession: async ({ cookies, request }) => {
+	terminateSrcSession: async ({ cookies, request, url }) => {
 		const data = await request.formData();
 		if (!data) error(500, 'session termination form data error');
 		const sourceID = String(data.get('sourceID'));
+		if (!sourcesGetters[sourceID]?.getSession) return fail(400, { invalid: true });
 		cookies.set(`${sourceID}SessionToken`, '', {
 			path: '/',
 			// server side only cookie so you can't use `document.cookie`
 			httpOnly: true,
 			// only requests from same site can send cookies
 			sameSite: 'strict',
-			// only sent over HTTPS in production
-			// secure: false,
+			secure: url.protocol === 'https:',
 			expires: new Date(0)
 		});
 		return { sessionTerminatedSuccess: true };

@@ -1,0 +1,146 @@
+diff --git a/xlsx.js b/xlsx.js
+index 9d0844608653771b6afe560443ca625be6ba22c8..2dfa04d2789161cbb33ee07d45d6c58af1fc9fb7 100644
+--- a/xlsx.js
++++ b/xlsx.js
+@@ -3781,6 +3781,9 @@ var attregexg=/\s([^"\s?>\/]+)\s*=\s*((?:")([^"]*)(?:")|(?:')([^']*)(?:')|([^'">
+ var tagregex1=/<[\/\?]?[a-zA-Z0-9:_-]+(?:\s+[^"\s?<>\/]+\s*=\s*(?:"[^"]*"|'[^']*'|[^'"<>\s=]+))*\s*[\/\?]?>/mg, tagregex2 = /<[^<>]*>/g;
+ var tagregex = XML_HEADER.match(tagregex1) ? tagregex1 : tagregex2;
+ var nsregex=/<\w*:/, nsregex2 = /<(\/?)\w+:/;
++function safe_xml_attr(name) {
++	return name !== "__proto__" && name !== "constructor" && name !== "prototype";
++}
+ function parsexmltag(tag, skip_root, skip_LC) {
+ 	var z = ({});
+ 	var eq = 0, c = 0;
+@@ -3798,14 +3801,17 @@ function parsexmltag(tag, skip_root, skip_LC) {
+ 		for(j=0;j!=q.length;++j) if(q.charCodeAt(j) === 58) break;
+ 		if(j===q.length) {
+ 			if(q.indexOf("_") > 0) q = q.slice(0, q.indexOf("_")); // from ods
+-			z[q] = v;
+-			if(!skip_LC) z[q.toLowerCase()] = v;
++			if(safe_xml_attr(q)) {
++				z[q] = v;
++				if(!skip_LC && safe_xml_attr(q.toLowerCase())) z[q.toLowerCase()] = v;
++			}
+ 		}
+ 		else {
+ 			var k = (j===5 && q.slice(0,5)==="xmlns"?"xmlns":"")+q.slice(j+1);
++			if(!safe_xml_attr(k)) continue;
+ 			if(z[k] && q.slice(j-3,j) == "ext") continue; // from ods
+ 			z[k] = v;
+-			if(!skip_LC) z[k.toLowerCase()] = v;
++			if(!skip_LC && safe_xml_attr(k.toLowerCase())) z[k.toLowerCase()] = v;
+ 		}
+ 	}
+ 	return z;
+@@ -3825,8 +3831,9 @@ function parsexmltagraw(tag, skip_root, skip_LC) {
+ 		quot = ((eq=cc.charCodeAt(c+1)) == 34 || eq == 39) ? 1 : 0;
+ 		v = cc.slice(c+1+quot, cc.length-quot);
+ 		if(q.indexOf("_") > 0) q = q.slice(0, q.indexOf("_")); // from ods
++		if(!safe_xml_attr(q)) continue;
+ 		z[q] = v;
+-		if(!skip_LC) z[q.toLowerCase()] = v;
++		if(!skip_LC && safe_xml_attr(q.toLowerCase())) z[q.toLowerCase()] = v;
+ 	}
+ 	return z;
+ }
+@@ -4248,23 +4255,16 @@ function WriteShift(t, val, f) {
+ for(i = 0; i != val.length; ++i) __writeUInt16LE(this, val.charCodeAt(i), this.l + 2 * i);
+ 		size = 2 * val.length;
+ 	} else if(f === 'sbcs' || f == 'cpstr') {
+-		if(typeof $cptable !== 'undefined' && current_ansi == 874) {
+-			/* TODO: use tables directly, don't encode */
+-for(i = 0; i != val.length; ++i) {
+-				var cpp = $cptable.utils.encode(current_ansi, val.charAt(i));
+-				this[this.l + i] = cpp[0];
+-			}
+-			size = val.length;
+-		} else if(typeof $cptable !== 'undefined' && f == 'cpstr') {
+-			cpp = $cptable.utils.encode(current_codepage, val);
++		if(typeof $cptable !== 'undefined') {
++			var cpp = $cptable.utils.encode(f == 'cpstr' ? current_codepage : current_ansi, val);
+ 			/* replace null bytes with _ when relevant */
+-      if(cpp.length == val.length) for(i = 0; i < val.length; ++i) if(cpp[i] == 0 && val.charCodeAt(i) != 0) cpp[i] = 0x5F;
+-      if(cpp.length == 2 * val.length) for(i = 0; i < val.length; ++i) if(cpp[2*i] == 0 && cpp[2*i+1] == 0 && val.charCodeAt(i) != 0) cpp[2*i] = 0x5F;
++			if(cpp.length == val.length) for(i = 0; i < val.length; ++i) if(cpp[i] == 0 && val.charCodeAt(i) != 0) cpp[i] = 0x5F;
++			if(cpp.length == 2 * val.length) for(i = 0; i < val.length; ++i) if(cpp[2*i] == 0 && cpp[2*i+1] == 0 && val.charCodeAt(i) != 0) cpp[2*i] = 0x5F;
+ 			for(i = 0; i < cpp.length; ++i) this[this.l + i] = cpp[i];
+ 			size = cpp.length;
+ 		} else {
+-val = val.replace(/[^\x00-\x7F]/g, "_");
+-for(i = 0; i != val.length; ++i) this[this.l + i] = (val.charCodeAt(i) & 0xFF);
++			val = val.replace(/[^\x00-\x7F]/g, "_");
++			for(i = 0; i != val.length; ++i) this[this.l + i] = (val.charCodeAt(i) & 0xFF);
+ 			size = val.length;
+ 		}
+ 	} else if(f === 'hex') {
+diff --git a/xlsx.mjs b/xlsx.mjs
+index 3e61a5971edc9504406a33bbe27ad2f736f45423..9ba133004a51282e089522ec7fe009b80b30cdbb 100644
+--- a/xlsx.mjs
++++ b/xlsx.mjs
+@@ -3854,6 +3854,9 @@ var attregexg=/\s([^"\s?>\/]+)\s*=\s*((?:")([^"]*)(?:")|(?:')([^']*)(?:')|([^'">
+ var tagregex1=/<[\/\?]?[a-zA-Z0-9:_-]+(?:\s+[^"\s?<>\/]+\s*=\s*(?:"[^"]*"|'[^']*'|[^'"<>\s=]+))*\s*[\/\?]?>/mg, tagregex2 = /<[^<>]*>/g;
+ var tagregex = /*#__PURE__*/XML_HEADER.match(tagregex1) ? tagregex1 : tagregex2;
+ var nsregex=/<\w*:/, nsregex2 = /<(\/?)\w+:/;
++function safe_xml_attr(name/*:string*/)/*:boolean*/ {
++	return name !== "__proto__" && name !== "constructor" && name !== "prototype";
++}
+ function parsexmltag(tag/*:string*/, skip_root/*:?boolean*/, skip_LC/*:?boolean*/)/*:any*/ {
+ 	var z = ({}/*:any*/);
+ 	var eq = 0, c = 0;
+@@ -3871,14 +3874,17 @@ function parsexmltag(tag/*:string*/, skip_root/*:?boolean*/, skip_LC/*:?boolean*
+ 		for(j=0;j!=q.length;++j) if(q.charCodeAt(j) === 58) break;
+ 		if(j===q.length) {
+ 			if(q.indexOf("_") > 0) q = q.slice(0, q.indexOf("_")); // from ods
+-			z[q] = v;
+-			if(!skip_LC) z[q.toLowerCase()] = v;
++			if(safe_xml_attr(q)) {
++				z[q] = v;
++				if(!skip_LC && safe_xml_attr(q.toLowerCase())) z[q.toLowerCase()] = v;
++			}
+ 		}
+ 		else {
+ 			var k = (j===5 && q.slice(0,5)==="xmlns"?"xmlns":"")+q.slice(j+1);
++			if(!safe_xml_attr(k)) continue;
+ 			if(z[k] && q.slice(j-3,j) == "ext") continue; // from ods
+ 			z[k] = v;
+-			if(!skip_LC) z[k.toLowerCase()] = v;
++			if(!skip_LC && safe_xml_attr(k.toLowerCase())) z[k.toLowerCase()] = v;
+ 		}
+ 	}
+ 	return z;
+@@ -3898,8 +3904,9 @@ function parsexmltagraw(tag/*:string*/, skip_root/*:?boolean*/, skip_LC/*:?boole
+ 		quot = ((eq=cc.charCodeAt(c+1)) == 34 || eq == 39) ? 1 : 0;
+ 		v = cc.slice(c+1+quot, cc.length-quot);
+ 		if(q.indexOf("_") > 0) q = q.slice(0, q.indexOf("_")); // from ods
++		if(!safe_xml_attr(q)) continue;
+ 		z[q] = v;
+-		if(!skip_LC) z[q.toLowerCase()] = v;
++		if(!skip_LC && safe_xml_attr(q.toLowerCase())) z[q.toLowerCase()] = v;
+ 	}
+ 	return z;
+ }
+@@ -4322,19 +4329,12 @@ function WriteShift(t/*:number*/, val/*:string|number*/, f/*:?string*/)/*:any*/
+ 		for(i = 0; i != val.length; ++i) __writeUInt16LE(this, val.charCodeAt(i), this.l + 2 * i);
+ 		size = 2 * val.length;
+ 	} else if(f === 'sbcs' || f == 'cpstr') {
+-		if(typeof $cptable !== 'undefined' && current_ansi == 874) {
+-			/* TODO: use tables directly, don't encode */
++		if(typeof $cptable !== 'undefined') {
+ 			/*:: if(typeof val !== "string") throw new Error("unreachable"); */
+-			for(i = 0; i != val.length; ++i) {
+-				var cpp = $cptable.utils.encode(current_ansi, val.charAt(i));
+-				this[this.l + i] = cpp[0];
+-			}
+-			size = val.length;
+-		} else if(typeof $cptable !== 'undefined' && f == 'cpstr') {
+-			cpp = $cptable.utils.encode(current_codepage, val);
++			var cpp = $cptable.utils.encode(f == 'cpstr' ? current_codepage : current_ansi, val);
+ 			/* replace null bytes with _ when relevant */
+-      if(cpp.length == val.length) for(i = 0; i < val.length; ++i) if(cpp[i] == 0 && val.charCodeAt(i) != 0) cpp[i] = 0x5F;
+-      if(cpp.length == 2 * val.length) for(i = 0; i < val.length; ++i) if(cpp[2*i] == 0 && cpp[2*i+1] == 0 && val.charCodeAt(i) != 0) cpp[2*i] = 0x5F;
++			if(cpp.length == val.length) for(i = 0; i < val.length; ++i) if(cpp[i] == 0 && val.charCodeAt(i) != 0) cpp[i] = 0x5F;
++			if(cpp.length == 2 * val.length) for(i = 0; i < val.length; ++i) if(cpp[2*i] == 0 && cpp[2*i+1] == 0 && val.charCodeAt(i) != 0) cpp[2*i] = 0x5F;
+ 			for(i = 0; i < cpp.length; ++i) this[this.l + i] = cpp[i];
+ 			size = cpp.length;
+ 		} else {

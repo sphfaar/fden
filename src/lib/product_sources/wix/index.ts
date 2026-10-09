@@ -6,7 +6,7 @@ export const descriptors: SourceDescriptors = {
 	name: 'WIX',
 	banner: banner,
 	scrapingType: 'HTML parser',
-	isLoggedIn: null
+	isLoggedIn: undefined
 };
 
 export const getters = {

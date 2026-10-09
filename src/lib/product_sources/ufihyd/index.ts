@@ -6,7 +6,7 @@ export const descriptors: SourceDescriptors = {
 	name: 'UFI Hyd.',
 	banner: banner,
 	scrapingType: 'HTML parser',
-	isLoggedIn: null
+	isLoggedIn: undefined
 };
 
 export const getters = {

@@ -58,4 +58,4 @@ export const getProducts: GetProducts = (code, maxItems, config, page = 1) => {
 	}
 };
 
-export const getNextProducts: GetNextProducts = () => null;
+export const getNextProducts: GetNextProducts = () => undefined;

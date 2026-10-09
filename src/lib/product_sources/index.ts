@@ -34,7 +34,7 @@ type Getter = {
 	getSession?: (
 		user: string,
 		password: string
-	) => Promise<string | null | ActionFailure<{ authError: boolean }>>;
+	) => Promise<string | ActionFailure<{ authError: boolean }>>;
 };
 
 export const sourcesDescriptors: SourceDescriptors[] = [

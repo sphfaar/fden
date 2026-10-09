@@ -18,4 +18,4 @@ export const getProducts: GetProducts = async (code: string) => {
 	}
 };
 
-export const getNextProducts: GetNextProducts = () => null;
+export const getNextProducts: GetNextProducts = () => undefined;

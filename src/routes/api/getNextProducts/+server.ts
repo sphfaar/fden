@@ -34,7 +34,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		(session) => session.name === body.sourceID
 	)?.value;
 
-	const productsData: ProductsData | undefined | null = await sourceOfData.getNextProducts(
+	const productsData: ProductsData | undefined = await sourceOfData.getNextProducts(
 		code,
 		maxItems,
 		{ showPerfReqProxyToSource: true },

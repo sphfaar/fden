@@ -62,4 +62,4 @@ export const getProducts: GetProducts = async (code: string, maxItems, config) =
 		failSourceRequest(err, 'Filtration Group error');
 	}
 };
-export const getNextProducts: GetNextProducts = () => null;
+export const getNextProducts: GetNextProducts = () => undefined;

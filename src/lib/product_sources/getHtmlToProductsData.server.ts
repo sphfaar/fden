@@ -26,7 +26,7 @@ export async function getHtmlToProducts<T>(
 	pagination?: number
 ): Promise<ProductsData> {
 	try {
-		const reqStart = config?.showPerfReqProxyToSource ? Date.now() : null;
+		const reqStart = config?.showPerfReqProxyToSource ? Date.now() : undefined;
 		const response = await axios.request(axiosReqConfig);
 		if (response.status >= 400) {
 			return {
@@ -40,7 +40,7 @@ export async function getHtmlToProducts<T>(
 		}
 
 		const html = response.data;
-		const reqEnd = config?.showPerfReqProxyToSource ? Date.now() : null;
+		const reqEnd = config?.showPerfReqProxyToSource ? Date.now() : undefined;
 
 		const { document } = parseHTML(
 			parsingFunctions.documentToHtml ? parsingFunctions.documentToHtml(html) : html

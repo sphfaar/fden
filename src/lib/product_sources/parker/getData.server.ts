@@ -53,4 +53,4 @@ export const getProducts: GetProducts = async (code, maxItems, config) => {
 	}
 };
 
-export const getNextProducts: GetNextProducts = () => null;
+export const getNextProducts: GetNextProducts = () => undefined;

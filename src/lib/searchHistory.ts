@@ -15,7 +15,9 @@ export function loadSearchEntries(): SearchEntry[] {
 		if (!raw) return [];
 		const parsed: unknown = JSON.parse(raw);
 		if (!Array.isArray(parsed)) return [];
-		return parsed.map(normalizeSearchEntry).filter((entry) => entry !== null);
+		return parsed
+			.map(normalizeSearchEntry)
+			.filter((entry): entry is SearchEntry => entry !== undefined);
 	} catch {
 		return [];
 	}
@@ -51,8 +53,8 @@ export function listFrequentQueries(entries: SearchEntry[]): SearchEntry[] {
 		.slice(0, MAX_SHOWN);
 }
 
-function normalizeSearchEntry(value: unknown): SearchEntry | null {
-	if (typeof value !== 'object' || value === null) return null;
+function normalizeSearchEntry(value: unknown): SearchEntry | undefined {
+	if (typeof value !== 'object' || value === null) return undefined;
 	const entry = value as Partial<SearchEntry>;
 	if (
 		typeof entry.q !== 'string' ||
@@ -62,7 +64,7 @@ function normalizeSearchEntry(value: unknown): SearchEntry | null {
 		typeof entry.lastUsedAt !== 'number' ||
 		!Number.isFinite(entry.lastUsedAt)
 	) {
-		return null;
+		return undefined;
 	}
 
 	return {

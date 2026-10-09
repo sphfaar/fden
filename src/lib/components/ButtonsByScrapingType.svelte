@@ -55,8 +55,8 @@
 		}
 	)}
 	{const { descriptors, style } = scrapingTypeColors.get(scrapingType) ?? {
-		descriptors: null,
-		style: null
+		descriptors: undefined,
+		style: undefined
 	}}
 	<button
 		class="relative min-h-7 w-full max-w-52 min-w-fit cursor-pointer overflow-hidden border font-semibold capitalize shadow-[-5px_0_0_-3px,5px_0_0_-3px] shadow-black {style?.border} bg-transparent {style?.hoverBg} transition-colors hover:text-neutral-50"

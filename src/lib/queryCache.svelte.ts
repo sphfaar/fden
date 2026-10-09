@@ -27,8 +27,8 @@ export interface CachedQueryRecord {
 export interface SourceCacheStats {
 	queries: number;
 	products: number;
-	oldest: string | null;
-	newest: string | null;
+	oldest?: string;
+	newest?: string;
 	/** Newest `fetchedAt` for each cached code on this source. */
 	newestByCode: Record<string, string>;
 }
@@ -40,11 +40,12 @@ export function formatCacheSize(bytes: number): string {
 	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function asProductsData(value: unknown): ProductsData | null {
-	if (!value || typeof value !== 'object') return null;
+export function asProductsData(value: unknown): ProductsData | undefined {
+	if (!value || typeof value !== 'object') return undefined;
 	const data = value as Partial<ProductsData>;
-	if (!data.meta || typeof data.meta !== 'object' || !Array.isArray(data.products)) return null;
-	if (typeof data.meta.status !== 'number' || typeof data.meta.page !== 'number') return null;
+	if (!data.meta || typeof data.meta !== 'object' || !Array.isArray(data.products))
+		return undefined;
+	if (typeof data.meta.status !== 'number' || typeof data.meta.page !== 'number') return undefined;
 	return data as ProductsData;
 }
 
@@ -351,8 +352,6 @@ class QueryCache {
 				const stats = bySource[value.sourceID] ?? {
 					queries: 0,
 					products: 0,
-					oldest: null,
-					newest: null,
 					newestByCode: {}
 				};
 				stats.queries += 1;

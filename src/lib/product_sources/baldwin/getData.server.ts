@@ -133,7 +133,7 @@ export const getProducts: GetProducts = async (
 	}
 };
 
-export const getNextProducts: GetNextProducts = () => null;
+export const getNextProducts: GetNextProducts = () => undefined;
 
 // Function to convert the input string to the format of images urls
 function convertProductString(input?: string): string | null {

@@ -27,7 +27,7 @@ declare global {
 		isChecked: boolean;
 		isDataLoaded: boolean; //is Data already loaded after last query
 		isMouseOverScrapingType: boolean;
-		lastCodeQuery: string | null;
+		lastCodeQuery: string | undefined;
 	}
 
 	interface SourceDescriptors {
@@ -36,11 +36,11 @@ declare global {
 		readonly logo?: string;
 		readonly banner?: string;
 		readonly scrapingType: 'JSON API' | 'HTML parser' /* | 'Automated browser'*/;
-		readonly isLoggedIn: boolean | null; // null: not mandatory
+		readonly isLoggedIn: boolean | undefined; // undefined: not mandatory
 	}
 
 	interface SourceDescriptorsLocal extends Omit<SourceDescriptors, 'isLoggedIn'> {
-		isLoggedIn: boolean | null;
+		isLoggedIn: boolean | undefined;
 	}
 
 	interface ProductsData {

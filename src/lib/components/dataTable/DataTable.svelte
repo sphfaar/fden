@@ -71,12 +71,12 @@
 	let { products }: { products: ProductOfTable[] } = $props();
 
 	let searchFilterVal = $state('');
-	let filter: string | null = $derived(
-		searchFilterVal.length > 0 ? searchFilterVal.trim() : null
+	let filter: string | undefined = $derived(
+		searchFilterVal.length > 0 ? searchFilterVal.trim() : undefined
 	);
 	let columnOrder = $state.raw<string[]>([...DEFAULT_COLUMN_ORDER]);
-	let draggingColumnId = $state<string | null>(null);
-	let dropTargetColumnId = $state<string | null>(null);
+	let draggingColumnId = $state<string | undefined>(undefined);
+	let dropTargetColumnId = $state<string | undefined>(undefined);
 
 	interface HighlightPart {
 		text: string;
@@ -129,7 +129,7 @@
 
 	function onColumnDragStart(event: DragEvent, columnId: string) {
 		draggingColumnId = columnId;
-		dropTargetColumnId = null;
+		dropTargetColumnId = undefined;
 		event.dataTransfer?.setData('text/plain', columnId);
 		if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
 	}
@@ -152,13 +152,13 @@
 			columnOrder = next;
 			saveColumnOrder(next);
 		}
-		draggingColumnId = null;
-		dropTargetColumnId = null;
+		draggingColumnId = undefined;
+		dropTargetColumnId = undefined;
 	}
 
 	function onColumnDragEnd() {
-		draggingColumnId = null;
-		dropTargetColumnId = null;
+		draggingColumnId = undefined;
+		dropTargetColumnId = undefined;
 	}
 
 	function onColumnOrderStorage(event: StorageEvent) {

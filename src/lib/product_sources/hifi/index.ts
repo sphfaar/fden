@@ -8,7 +8,7 @@ export const descriptors: SourceDescriptors = {
 	logo: logo,
 	banner: banner,
 	scrapingType: 'JSON API',
-	isLoggedIn: null
+	isLoggedIn: undefined
 };
 
 export const getters = {

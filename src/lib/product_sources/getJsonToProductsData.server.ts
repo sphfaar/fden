@@ -17,7 +17,7 @@ export async function getJsonToProducts<T>(
 	page?: number
 ): Promise<ProductsData> {
 	try {
-		const reqStart = config?.showPerfReqProxyToSource ? Date.now() : null;
+		const reqStart = config?.showPerfReqProxyToSource ? Date.now() : undefined;
 		const response = await axios.request(axiosReqConfig);
 		if (response.status >= 400) {
 			return {
@@ -30,7 +30,7 @@ export async function getJsonToProducts<T>(
 			};
 		}
 		const responseData = response.data;
-		const reqEnd = config?.showPerfReqProxyToSource ? Date.now() : null;
+		const reqEnd = config?.showPerfReqProxyToSource ? Date.now() : undefined;
 		const products: Product[] = parsingFunctions.rowsIterator(responseData);
 		return {
 			meta: {

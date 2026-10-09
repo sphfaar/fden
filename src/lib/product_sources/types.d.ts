@@ -22,4 +22,4 @@ export type GetNextProducts = (
 		sessionToken?: string;
 		retries?: number;
 	}
-) => Promise<ProductsData> | null;
+) => Promise<ProductsData> | undefined;

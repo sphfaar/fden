@@ -6,7 +6,7 @@ export const descriptors: SourceDescriptors = {
 	name: 'fleetguard',
 	logo: logo,
 	scrapingType: 'JSON API',
-	isLoggedIn: null
+	isLoggedIn: undefined
 };
 
 export const getters = {

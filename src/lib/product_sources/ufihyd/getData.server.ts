@@ -48,4 +48,4 @@ export const getProducts: GetProducts = async (code, maxItems, config) => {
 		failSourceRequest(err, 'UFI hyd. error');
 	}
 };
-export const getNextProducts: GetNextProducts = () => null;
+export const getNextProducts: GetNextProducts = () => undefined;

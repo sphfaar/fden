@@ -8,7 +8,7 @@ export const descriptors: SourceDescriptors = {
 	banner: banner,
 	logo: logo,
 	scrapingType: 'HTML parser',
-	isLoggedIn: null
+	isLoggedIn: undefined
 };
 
 export const getters = {

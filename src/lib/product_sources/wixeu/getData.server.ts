@@ -47,4 +47,4 @@ export const getProducts: GetProducts = async (code, maxItems, config) => {
 		failSourceRequest(err, 'WIX-EU error');
 	}
 };
-export const getNextProducts: GetNextProducts = () => null;
+export const getNextProducts: GetNextProducts = () => undefined;

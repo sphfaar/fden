@@ -13,10 +13,10 @@
 	});
 
 	/** `Xm` under 1h, `Xh` under 1d, `Xd` under 365d, otherwise `Xy`. */
-	function formatCacheAge(fetchedAt: string): string | null {
+	function formatCacheAge(fetchedAt: string): string | undefined {
 		subscribeCacheClock();
 		const then = new Date(fetchedAt).getTime();
-		if (Number.isNaN(then)) return null;
+		if (Number.isNaN(then)) return undefined;
 		const elapsed = Math.max(0, Date.now() - then);
 		if (elapsed < HOUR_MS) return `${Math.floor(elapsed / MINUTE_MS)}m`;
 		if (elapsed < DAY_MS) return `${Math.floor(elapsed / HOUR_MS)}h`;
@@ -52,28 +52,28 @@
 		refreshCachedQuery: (sourceID: string) => Promise<void>;
 		isChecked: boolean;
 		isDataLoaded: boolean;
-		lastCodeQuery: string | null;
+		lastCodeQuery: string | undefined;
 	} = $props();
 
 	let isLoadingNextProducts = $state(false);
 	let isRefreshingCache = $state(false);
-	let metaData = $state<MetaData | null>(null);
-	let errorMessage = $state<string | null>(null);
+	let metaData = $state<MetaData | undefined>(undefined);
+	let errorMessage = $state<string | undefined>(undefined);
 	let sourceCache = $derived(queryCache.bySource[sourceDescriptors.sourceID]);
 	let queryCachedAt = $derived(
-		lastCodeQuery ? (sourceCache?.newestByCode[lastCodeQuery] ?? null) : null
+		lastCodeQuery ? sourceCache?.newestByCode[lastCodeQuery] : undefined
 	);
 	let queryCacheLocal = $derived.by(() => {
-		if (!queryCachedAt) return null;
+		if (!queryCachedAt) return undefined;
 		const date = new Date(queryCachedAt);
-		if (Number.isNaN(date.getTime())) return null;
+		if (Number.isNaN(date.getTime())) return undefined;
 		const pad2 = (value: number) => String(value).padStart(2, '0');
 		return {
 			day: `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`,
 			time: `${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`
 		};
 	});
-	let queryCacheAge = $derived(queryCachedAt ? formatCacheAge(queryCachedAt) : null);
+	let queryCacheAge = $derived(queryCachedAt ? formatCacheAge(queryCachedAt) : undefined);
 
 	let nextLoadStatus = $derived.by<
 		| 'full'
@@ -174,7 +174,7 @@
 
 	async function initLoad() {
 		try {
-			metaData = (await metaDataPromise) ?? null;
+			metaData = (await metaDataPromise) ?? undefined;
 		} catch (error) {
 			if (
 				error &&

@@ -15,7 +15,8 @@ export default defineConfig(
 	ts.configs.recommended,
 	svelte.configs.recommended,
 	{
-		files: ['vite.config.ts'],
+		files: ['**/*.js', '**/*.mjs', '**/*.cjs', '**/*.ts', '**/*.mts', '**/*.cts'],
+		ignores: ['**/*.svelte.js', '**/*.svelte.ts'],
 		plugins: {
 			unicorn
 		},

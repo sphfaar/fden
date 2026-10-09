@@ -28,4 +28,4 @@ export const getProducts: GetProducts = async (code, maxItems, _config) => {
 	}
 };
 
-export const getNextProducts: GetNextProducts = () => null;
+export const getNextProducts: GetNextProducts = () => undefined;

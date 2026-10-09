@@ -69,7 +69,7 @@
 
 	const codeRgx = /^[\w.\-/]{3,32}$/;
 	let code = $state(page.url.searchParams.get('q') ?? '');
-	let isLoadingTable: boolean | null = $state(null);
+	let isLoadingTable = $state(false);
 	let isLoadingMoreProductsOnTable = $state(false);
 	let searchEntries = $state.raw<SearchEntry[]>([]);
 	const recentQueries = $derived(listRecentQueries(searchEntries));
@@ -80,7 +80,7 @@
 	let legendSliderHandle: HTMLElement | null = null;
 	let legendSliderDragging = false;
 	let legendSliderRaf = 0;
-	let legendSliderPending: number | null = null;
+	let legendSliderPending: number | undefined = undefined;
 
 	const prodsFromSrcPromises: ProductsFromSourcePromises = new SvelteMap(); //products will be added here also by APIs
 	const prodsFromSrcFulfilled: ProductsFromSources = new SvelteMap();
@@ -198,7 +198,7 @@
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(payload)
 		});
-		const body: unknown = await response.json().catch(() => null);
+		const body: unknown = await response.json().catch(() => undefined);
 		const data = asProductsData(body);
 		if (!response.ok || !data) {
 			throw new Error(errorMessageFromBody(body, `error fetching products (${response.status})`));
@@ -259,7 +259,9 @@
 		beginTableLoad();
 		try {
 			const cached = await queryCache.get(sourceID, query);
-			const firstPage = cached ? orderedCachedPages(cached).find((page) => page.page === 1) : null;
+			const firstPage = cached
+				? orderedCachedPages(cached).find((page) => page.page === 1)
+				: undefined;
 			if (firstPage) {
 				if (!stillCurrent(sourceID, token)) return;
 				loadedPages.set(loadedKey(sourceID, query), 1);
@@ -302,7 +304,7 @@
 		for (const [sourceDescs, promise] of prodsFromSrcPromises) {
 			if (sourceDescs.sourceID === sourceID) return { sourceDescs, promise };
 		}
-		return null;
+		return undefined;
 	}
 
 	async function loadNextProducts(sourceID: string) {
@@ -322,7 +324,7 @@
 			const loaded = loadedPages.get(loadedKey(sourceID, query)) ?? 1;
 			const nextCached = cached
 				? orderedCachedPages(cached).find((page) => page.page === loaded + 1)
-				: null;
+				: undefined;
 			if (nextCached && loaded < (cached?.pagesFetched ?? 0)) {
 				if (!stillCurrent(sourceID, token)) return;
 				loadedPages.set(loadedKey(sourceID, query), loaded + 1);
@@ -451,9 +453,9 @@
 
 	function flushLegendSlider() {
 		legendSliderRaf = 0;
-		if (legendSliderPending === null) return;
+		if (legendSliderPending === undefined) return;
 		legendSlider = legendSliderPending;
-		legendSliderPending = null;
+		legendSliderPending = undefined;
 		saveLegendSlider(legendSlider);
 	}
 
@@ -468,7 +470,7 @@
 			cancelAnimationFrame(legendSliderRaf);
 			legendSliderRaf = 0;
 		}
-		legendSliderPending = null;
+		legendSliderPending = undefined;
 		legendSlider = clamp01(next);
 		saveLegendSlider(legendSlider);
 	}
@@ -476,7 +478,7 @@
 	function legendSliderFromPointer(event: PointerEvent) {
 		const handle = legendSliderHandle;
 		const track = handle?.parentElement;
-		if (!handle || !track) return null;
+		if (!handle || !track) return undefined;
 		const rect = track.getBoundingClientRect();
 		const handleW = handle.offsetWidth;
 		const max = rect.width - handleW;
@@ -486,7 +488,7 @@
 
 	function updateLegendSlider(event: PointerEvent) {
 		const next = legendSliderFromPointer(event);
-		if (next === null) return;
+		if (next === undefined) return;
 		scheduleLegendSlider(next);
 	}
 
@@ -500,7 +502,7 @@
 			// pointer capture is optional; window listeners keep the drag
 		}
 		const next = legendSliderFromPointer(event);
-		if (next !== null) commitLegendSlider(next);
+		if (next !== undefined) commitLegendSlider(next);
 	}
 
 	function onLegendSliderPointerMove(event: PointerEvent) {
@@ -606,7 +608,7 @@
 				isChecked: isDataSSRPreloaded,
 				isDataLoaded: isDataSSRPreloaded,
 				isMouseOverScrapingType: false,
-				lastCodeQuery: isDataSSRPreloaded ? currentCode : null
+				lastCodeQuery: isDataSSRPreloaded ? currentCode : undefined
 			};
 		});
 	});

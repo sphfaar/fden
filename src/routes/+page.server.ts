@@ -18,11 +18,11 @@ export const load: PageServerLoad = ({ url, locals }) => {
 			? sourcesDescriptors.map((srcDescs) => ({
 					...srcDescs,
 					isLoggedIn:
-						srcDescs.isLoggedIn !== null
+						srcDescs.isLoggedIn !== undefined
 							? srcSessionTokens.some((token) => token.name === srcDescs.sourceID)
 								? true
 								: false
-							: null
+							: undefined
 				}))
 			: sourcesDescriptors;
 

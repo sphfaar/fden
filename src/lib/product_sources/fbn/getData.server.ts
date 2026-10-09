@@ -43,7 +43,7 @@ function fbnHeaders(cookie?: string): Record<string, string> {
 export async function getSession(
 	username: string,
 	password: string
-): Promise<string | ActionFailure<{ authError: boolean }> | null> {
+): Promise<string | ActionFailure<{ authError: boolean }>> {
 	try {
 		const page = await fetch(FBN_REFERER, { headers: fbnHeaders() });
 		if (!page.ok) return fail(400, { authError: true });

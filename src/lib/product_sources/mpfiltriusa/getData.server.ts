@@ -57,4 +57,4 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 		failSourceRequest(err, 'MPfiltriUSA error');
 	}
 };
-export const getNextProducts: GetNextProducts = () => null;
+export const getNextProducts: GetNextProducts = () => undefined;

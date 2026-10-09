@@ -6,7 +6,7 @@ export const descriptors: SourceDescriptors = {
 	name: 'SF',
 	banner: banner,
 	scrapingType: 'JSON API',
-	isLoggedIn: null
+	isLoggedIn: undefined
 };
 
 export const getters = {

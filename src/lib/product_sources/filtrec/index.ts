@@ -6,7 +6,7 @@ export const descriptors: SourceDescriptors = {
 	name: 'Filtrec',
 	logo: logo,
 	scrapingType: 'JSON API',
-	isLoggedIn: null
+	isLoggedIn: undefined
 };
 
 export const getters = {

@@ -48,6 +48,7 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Funnel from '@lucide/svelte/icons/funnel';
 	import GripVertical from '@lucide/svelte/icons/grip-vertical';
+	import { catalogHttpsUrl, catalogHttpsUrls } from '#lib/safeCatalogUrl.js';
 	import { onMount } from 'svelte';
 	import { createTable, FlexRender, renderSnippet, type Updater } from '@tanstack/svelte-table';
 	import {
@@ -300,9 +301,10 @@
 {/snippet}
 
 {#snippet thumbnailsCell({ urls }: { urls?: string[] })}
-	{#if urls}
+	{const safeUrls = catalogHttpsUrls(urls)}
+	{#if safeUrls.length > 0}
 		<ul>
-			{#each urls as url (url)}
+			{#each safeUrls as url (url)}
 				<li>
 					<img
 						src={url}
@@ -319,9 +321,10 @@
 {/snippet}
 
 {#snippet detailsCell({ href }: { href?: string })}
-	{#if href}
+	{const safeHref = catalogHttpsUrl(href)}
+	{#if safeHref}
 		<!-- eslint-disable svelte/no-navigation-without-resolve -->
-		<a {href} target="_blank" rel="noopener noreferrer">🔗</a>
+		<a href={safeHref} target="_blank" rel="noopener noreferrer">🔗</a>
 	{/if}
 {/snippet}
 

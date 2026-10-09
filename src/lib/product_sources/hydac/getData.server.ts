@@ -1,5 +1,6 @@
 import { getJsonToProducts } from '../getJsonToProductsData.server';
 import { headers } from '#lib/product_sources/constants.js';
+import { catalogHttpsUrl } from '#lib/safeCatalogUrl.js';
 import type { GetNextProducts, GetProducts } from '../types';
 import type ResponseSchema from './ResponseSchema';
 
@@ -36,11 +37,12 @@ export const getProducts: GetProducts = async (code, maxItems, config) => {
 					const products: Product[] = [];
 					for (let i = 0; i < Math.min(resData.relation.length, nItems); i++) {
 						const row = resData.relation[i];
+						const thumbnail = catalogHttpsUrl(row.hydac.image.src, 'https://www.hydac.com/');
 						products.push({
 							manufacturer: row.competitor.manufacturer.title,
 							manufacturer_code: row.competitor.title,
 							source_reference_code: row.hydac.title,
-							thumbnails: [row.hydac.image.src]
+							thumbnails: thumbnail ? [thumbnail] : undefined
 						});
 					}
 					return products;

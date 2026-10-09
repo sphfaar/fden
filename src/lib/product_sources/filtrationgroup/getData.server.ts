@@ -3,6 +3,7 @@ import type { GetNextProducts, GetProducts } from '../types';
 import { error } from '@sveltejs/kit';
 import { getHtmlToProducts } from '#lib/product_sources/getHtmlToProductsData.server.js';
 import { headers } from '#lib/product_sources/constants.js';
+import { catalogHttpsUrl } from '#lib/safeCatalogUrl.js';
 
 export const getProducts: GetProducts = async (code: string, maxItems, config) => {
 	const nItems = Math.min(maxItems, Infinity);
@@ -38,16 +39,17 @@ export const getProducts: GetProducts = async (code: string, maxItems, config) =
 					const products: Product[] = [];
 					for (let i = 0; i < Math.min(tableRows.length, nItems); i++) {
 						const row = tableRows[i];
+						const thumbnail = catalogHttpsUrl(
+							row.querySelector('img')?.getAttribute('src'),
+							'https://shopindustrial.filtrationgroup.com/'
+						);
 						products.push({
-							manufacturer:
-								row.querySelector(':nth-child(3)')?.textContent?.trim() ?? '',
-							manufacturer_code:
-								row.querySelector(':nth-child(1)')?.textContent?.trim() ?? '',
+							manufacturer: row.querySelector(':nth-child(3)')?.textContent?.trim() ?? '',
+							manufacturer_code: row.querySelector(':nth-child(1)')?.textContent?.trim() ?? '',
 							source_reference_code:
-								row
-									.getElementsByClassName('fg_additional_product_info')[0]
-									?.textContent?.trim() ?? '',
-							thumbnails: [row.querySelector('img')?.getAttribute('src') ?? '']
+								row.getElementsByClassName('fg_additional_product_info')[0]?.textContent?.trim() ??
+								'',
+							thumbnails: thumbnail ? [thumbnail] : undefined
 						});
 					}
 					return products;

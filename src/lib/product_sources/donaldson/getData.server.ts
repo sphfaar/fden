@@ -2,6 +2,7 @@ import type { GetNextProducts, GetProducts } from '../types';
 import type ResponseSchema from './ResponseSchema';
 import { getJsonToProducts } from '#lib/product_sources/getJsonToProductsData.server.js';
 import { headers } from '#lib/product_sources/constants.js';
+import { catalogHttpsUrl } from '#lib/safeCatalogUrl.js';
 
 export const getProducts: GetProducts = async (code, maxItems, config, page: number = 1) => {
 	const nItems = Math.min(maxItems, 20);
@@ -41,21 +42,17 @@ export const getProducts: GetProducts = async (code, maxItems, config, page: num
 					if (resData.contents[0].MainContent[0].competitorProductDetailDTOList) {
 						for (
 							let i = 0;
-							i <
-							resData.contents[0].MainContent[0].competitorProductDetailDTOList
-								.length;
+							i < resData.contents[0].MainContent[0].competitorProductDetailDTOList.length;
 							i++
 						) {
-							const row =
-								resData.contents[0].MainContent[0].competitorProductDetailDTOList[
-									i
-								];
+							const row = resData.contents[0].MainContent[0].competitorProductDetailDTOList[i];
+							const thumbnail = catalogHttpsUrl(row.thumbnailImage, 'https://shop.donaldson.com/');
 							products.push({
 								manufacturer: row.manufactureName,
 								manufacturer_code: row.manufacturerPartNumber,
 								source_reference_code: row.donaldsonPartNumber,
-								detailsUrl: `https://shop.donaldson.com/${row.pdpURL}`,
-								thumbnails: row?.thumbnailImage ? [row.thumbnailImage] : undefined,
+								detailsUrl: catalogHttpsUrl(row.pdpURL, 'https://shop.donaldson.com/'),
+								thumbnails: thumbnail ? [thumbnail] : undefined,
 								description: row.description,
 								category: row.productLine
 							});
@@ -68,10 +65,8 @@ export const getProducts: GetProducts = async (code, maxItems, config, page: num
 						(resData.contents[0].MainContent[0].competitorPartsCount ?? NaN) /
 							(resData.contents[0].MainContent[0].customerPartsPerPage ?? NaN)
 					),
-				pagination: (resData) =>
-					resData.contents[0].MainContent[0].customerPartsPerPage ?? null,
-				totalItems: (resData) =>
-					Number(resData.contents[0].MainContent[0].competitorPartsCount)
+				pagination: (resData) => resData.contents[0].MainContent[0].customerPartsPerPage ?? null,
+				totalItems: (resData) => Number(resData.contents[0].MainContent[0].competitorPartsCount)
 			},
 			config,
 			page

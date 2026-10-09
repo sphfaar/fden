@@ -2,6 +2,7 @@ import type { GetProducts, GetNextProducts } from '../types';
 import { error } from '@sveltejs/kit';
 import { getHtmlToProducts } from '../getHtmlToProductsData.server';
 import { headers } from '#lib/product_sources/constants.js';
+import { catalogHttpsUrl } from '#lib/safeCatalogUrl.js';
 
 export const getProducts: GetProducts = async (code, maxItems, config, page = 1) => {
 	// const nItems = Math.min(maxItems, Infinity);
@@ -67,7 +68,10 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 									'result-table__table-mobile-row__item-col'
 								)[1]?.textContent ?? '',
 							source_reference_code: productUrl?.textContent?.trim() ?? '',
-							detailsUrl: productUrl?.getAttribute('href') ?? undefined
+							detailsUrl: catalogHttpsUrl(
+								productUrl?.getAttribute('href'),
+								'https://catalog.hengst.com/'
+							)
 						});
 					}
 					return products;

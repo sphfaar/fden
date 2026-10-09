@@ -2,6 +2,7 @@ import type { GetNextProducts, GetProducts } from '../types';
 import { error } from '@sveltejs/kit';
 import { getHtmlToProducts } from '../getHtmlToProductsData.server';
 import { headers } from '#lib/product_sources/constants.js';
+import { catalogHttpsUrl } from '#lib/safeCatalogUrl.js';
 
 export const getProducts: GetProducts = async (code, maxItems, config) => {
 	const nItems = Math.min(maxItems, Infinity);
@@ -27,14 +28,15 @@ export const getProducts: GetProducts = async (code, maxItems, config) => {
 					for (let i = 0; i < Math.min(tableRows.length, nItems); i++) {
 						const row = tableRows[i];
 						const detailsUrlElement = row.querySelector('.ufi-code a') as
-							| HTMLAnchorElement
-							| undefined
-							| null;
+							HTMLAnchorElement | undefined | null;
 						products.push({
 							manufacturer: row.querySelector('.manufacturer-code span')?.textContent ?? '',
 							manufacturer_code: row.querySelector('.manufacturer-code span')?.textContent ?? '',
 							source_reference_code: row.querySelector('.ufi-code a span')?.textContent ?? '',
-							detailsUrl: detailsUrlElement?.href ?? ''
+							detailsUrl: catalogHttpsUrl(
+								detailsUrlElement?.getAttribute('href'),
+								'https://crossreference.ufihyd.com/'
+							)
 						});
 					}
 					return products;

@@ -3,6 +3,7 @@ import type { GetProducts, GetNextProducts } from '../types';
 import { error } from '@sveltejs/kit';
 import { getJsonToProducts } from '../getJsonToProductsData.server';
 import { headers } from '#lib/product_sources/constants.js';
+import { catalogHttpsUrl } from '#lib/safeCatalogUrl.js';
 
 export const getProducts: GetProducts = (code, maxItems, config, page = 1) => {
 	const nItems = Math.min(maxItems, Infinity);
@@ -42,7 +43,7 @@ export const getProducts: GetProducts = (code, maxItems, config, page = 1) => {
 							manufacturer: row.brand,
 							manufacturer_code: row.originalNumber,
 							source_reference_code: row.item.link.title,
-							detailsUrl: `https://www.sf-filter.com${row.item.link.url}`
+							detailsUrl: catalogHttpsUrl(row.item.link.url, 'https://www.sf-filter.com/')
 						});
 					}
 					return products;

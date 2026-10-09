@@ -658,9 +658,18 @@
 		class="flex flex-wrap items-center gap-x-4 gap-y-2 px-8 pt-6 pb-4 text-sm text-primary lg:px-12"
 	>
 		<span class="inline-flex items-center gap-1.5">
-			<DatabaseZap size={16} />
+			<span
+				class="query-chip-title inline-flex shrink-0 items-center"
+				style:anchor-name="--cached-queries"
+				role="img"
+				aria-label="cached queries in your machine"
+			>
+				<DatabaseZap size={16} aria-hidden="true" />
+			</span>
+			<span class="query-chip-tooltip" role="tooltip" style:position-anchor="--cached-queries">
+				cached queries in your machine
+			</span>
 			<span class="font-bold tabular-nums">{queryCache.queryCount}</span>
-			cached queries
 		</span>
 		<span class="text-primary/80 tabular-nums">{formatCacheSize(queryCache.byteSize)}</span>
 		<button

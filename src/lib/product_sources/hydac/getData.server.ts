@@ -1,5 +1,4 @@
 import { getJsonToProducts } from '../getJsonToProductsData.server';
-import { getProductThumbnails } from '../getProductsThumbnails.server';
 import { headers } from '#lib/product_sources/constants.js';
 import type { GetNextProducts, GetProducts } from '../types';
 import type ResponseSchema from './ResponseSchema';
@@ -41,7 +40,7 @@ export const getProducts: GetProducts = async (code, maxItems, config) => {
 							manufacturer: row.competitor.manufacturer.title,
 							manufacturer_code: row.competitor.title,
 							source_reference_code: row.hydac.title,
-							thumbnails: getProductThumbnails([row.hydac.image.src])
+							thumbnails: [row.hydac.image.src]
 						});
 					}
 					return products;

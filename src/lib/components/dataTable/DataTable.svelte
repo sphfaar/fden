@@ -49,7 +49,6 @@
 	import Funnel from '@lucide/svelte/icons/funnel';
 	import GripVertical from '@lucide/svelte/icons/grip-vertical';
 	import { onMount } from 'svelte';
-	import { SvelteSet } from 'svelte/reactivity';
 	import { createTable, FlexRender, renderSnippet, type Updater } from '@tanstack/svelte-table';
 	import {
 		COLUMN_ORDER_KEY,
@@ -77,9 +76,6 @@
 	let columnOrder = $state.raw<string[]>([...DEFAULT_COLUMN_ORDER]);
 	let draggingColumnId = $state<string | null>(null);
 	let dropTargetColumnId = $state<string | null>(null);
-
-	let thumbnailsInProxyFallback = new SvelteSet<string>();
-	let thumbnailsHidden = new SvelteSet<string>();
 
 	interface HighlightPart {
 		text: string;
@@ -306,22 +302,15 @@
 {#snippet thumbnailsCell({ urls }: { urls?: string[] })}
 	{#if urls}
 		<ul>
-			{#each urls as url, j (j)}
-				<li class={{ hidden: thumbnailsHidden.has(url) }}>
+			{#each urls as url (url)}
+				<li>
 					<img
-						src={thumbnailsInProxyFallback.has(url)
-							? `/proxy?url=${encodeURIComponent(url)}`
-							: url}
+						src={url}
 						loading="lazy"
 						alt="p_img"
 						height={32}
 						width={32}
 						class="size-8 object-cover"
-						onerror={() => {
-							// if url proxy already attempted then hide
-							if (thumbnailsInProxyFallback.has(url)) thumbnailsHidden.add(url);
-							else thumbnailsInProxyFallback.add(url);
-						}}
 					/>
 				</li>
 			{/each}

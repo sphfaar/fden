@@ -9,6 +9,12 @@
 		"binding": "ASSETS",
 		"directory": ".svelte-kit/cloudflare"
 	},
+	"kv_namespaces": [
+		{
+			"binding": "PRODUCT_API_QUOTA",
+			"id": "1590e540ac304386a3a129807e8d6587"
+		}
+	],
 	"observability": {
 		"enabled": true
 	}

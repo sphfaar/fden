@@ -1,23 +1,23 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { error } from '@sveltejs/kit';
-import { sourcesGetters } from '#lib/product_sources/index.js';
+import { enforceDailyProductApiLimit } from '#lib/productApiLimit.server.js';
+import {
+	readJsonBody,
+	requestFields,
+	requireMaxItems,
+	requireProductCode,
+	requireSource
+} from '#lib/productRequest.server.js';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
-	interface RequestData {
-		sourceID: string;
-		code: string;
-		maxItems: number;
-	}
-	const { sourceID, code, maxItems }: RequestData = await request.json();
-	const queryRegex = /^[\w.\-/]{3,32}$/;
-	if (!queryRegex.test(code)) {
-		error(400, 'Bad Product Code Request');
-	}
-
-	const sourceOfData = sourcesGetters[sourceID];
+	await enforceDailyProductApiLimit();
+	const body = requestFields(await readJsonBody(request));
+	const code = requireProductCode(body.code);
+	const maxItems = requireMaxItems(body.maxItems);
+	const sourceOfData = requireSource(body.sourceID);
 
 	const maybeSessionToken: string | undefined = locals?.srcSessions?.find(
-		(session) => session.name === sourceID
+		(session) => session.name === body.sourceID
 	)?.value;
 
 	const productsData: ProductsData | undefined | null = await sourceOfData.getProducts(

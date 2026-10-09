@@ -1,12 +1,39 @@
+<script lang="ts" module>
+	import { createSubscriber } from 'svelte/reactivity';
+
+	const MINUTE_MS = 60_000;
+	const HOUR_MS = 60 * MINUTE_MS;
+	const DAY_MS = 24 * HOUR_MS;
+	const YEAR_MS = 365 * DAY_MS;
+
+	/** One clock for every card. Age text refreshes about every 15s. */
+	const subscribeCacheClock = createSubscriber((update) => {
+		const id = setInterval(update, 15_000);
+		return () => clearInterval(id);
+	});
+
+	/** `Xm` under 1h, `Xh` under 1d, `Xd` under 365d, otherwise `Xy`. */
+	function formatCacheAge(fetchedAt: string): string | null {
+		subscribeCacheClock();
+		const then = new Date(fetchedAt).getTime();
+		if (Number.isNaN(then)) return null;
+		const elapsed = Math.max(0, Date.now() - then);
+		if (elapsed < HOUR_MS) return `${Math.floor(elapsed / MINUTE_MS)}m`;
+		if (elapsed < DAY_MS) return `${Math.floor(elapsed / HOUR_MS)}h`;
+		if (elapsed < YEAR_MS) return `${Math.floor(elapsed / DAY_MS)}d`;
+		return `${Math.floor(elapsed / YEAR_MS)}y`;
+	}
+</script>
+
 <script lang="ts">
 	import Antenna from '@lucide/svelte/icons/antenna';
 	import ArrowRightLeft from '@lucide/svelte/icons/arrow-right-left';
 	import File from '@lucide/svelte/icons/file';
 	import ListPlus from '@lucide/svelte/icons/list-plus';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
-	import RotateCwClock from '@lucide/svelte/icons/rotate-cw-clock';
 	import { queryCache } from '#lib/queryCache.svelte.js';
 	import { scrapingTypeColors } from '#lib/scarpingTypes.js';
+	import { DatabaseZap } from '@lucide/svelte';
 
 	let {
 		sourceDescriptors,
@@ -46,6 +73,7 @@
 			time: `${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`
 		};
 	});
+	let queryCacheAge = $derived(queryCachedAt ? formatCacheAge(queryCachedAt) : null);
 
 	let nextLoadStatus = $derived.by<
 		| 'full'
@@ -216,7 +244,8 @@
 				<samp class="mt-2 ml-4 pr-2 text-end text-lg">
 					{#if !errorMessage}
 						{#if metaData?.maxItemsPagination && metaData?.totalItems}
-							<span class="font-bold">{metaData.currentItemsDisplayed}</span><span class="text-xs"
+							<span class="font-bold">{metaData.currentItemsDisplayed}</span><span
+								class="text-xs"
 								>/{metaData.totalItems}
 							</span>
 						{:else}
@@ -235,7 +264,9 @@
 
 				<!-- Progress to FULL -->
 				{@render progressToFULL(
-					metaData.pages && nextLoadStatus !== 'full' ? metaData.page / metaData.pages : 1,
+					metaData.pages && nextLoadStatus !== 'full'
+						? metaData.page / metaData.pages
+						: 1,
 					metaData.pages
 						? { fill: 'var(--color-secondary)' }
 						: { stroke: 'var(--color-secondary)' },
@@ -245,7 +276,9 @@
 				<!-- Loading More Button -->
 				{@render buttonLoadMore(metaData ?? undefined)}
 			{:else if errorMessage}
-				<p class="col-span-1 row-span-2 ml-4 h-7 overflow-auto text-left text-xs text-error">
+				<p
+					class="col-span-1 row-span-2 ml-4 h-7 overflow-auto text-left text-xs text-error"
+				>
 					{errorMessage}
 				</p>
 				{@render progressToFULL(
@@ -260,7 +293,8 @@
 			<span
 				class="col-span-1 mt-[0.08rem] inline-flex items-center gap-0 self-start text-[0.55rem] font-black {errorMessage
 					? 'text-inherit'
-					: 'text-secondary'}"><Antenna class="mx-0.5 inline h-2 w-2" />{metaData?.status}</span
+					: 'text-secondary'}"
+				><Antenna class="mx-0.5 inline h-2 w-2" />{metaData?.status}</span
 			>
 			<span
 				class="w-11/12 text-start text-[0.55rem] font-medium {errorMessage
@@ -269,8 +303,8 @@
 			>
 				{#if isDataLoaded}
 					<span class="perf-text inline-flex items-center text-nowrap"
-						><ArrowRightLeft class="mx-0.5 inline h-2 w-2" />{metaData?.performanceTimings
-							?.proxyToSource} ms</span
+						><ArrowRightLeft class="mx-0.5 inline h-2 w-2" />{metaData
+							?.performanceTimings?.proxyToSource} ms</span
 					>
 				{:else if lastCodeQuery}
 					({lastCodeQuery}) ━━ OLD ━━
@@ -285,7 +319,7 @@
 				</samp>
 			{/if}
 		{:else}
-			{@render loader(sourceDescriptors.banner ? true : false)}
+			<LoaderCircle class="col-span-2 row-span-2 animate-spin place-self-center" />
 		{/if}
 	{/if}
 
@@ -410,46 +444,39 @@
 	<button
 		type="button"
 		class="group relative col-start-5 row-span-2 row-start-1 flex size-full min-w-0 cursor-pointer flex-col items-center justify-center gap-1 self-stretch border-l border-primary/40 px-1 text-center leading-none hover:bg-primary/20 disabled:cursor-wait disabled:opacity-60"
-		aria-label={queryCacheLocal
-			? `Refresh cached query from source, ${queryCacheLocal.day} ${queryCacheLocal.time}`
+		aria-label={queryCacheLocal && queryCacheAge
+			? `Refresh cached query from source, cached ${queryCacheAge} ago, ${queryCacheLocal.day} ${queryCacheLocal.time}`
 			: 'Refresh cached query from source'}
 		disabled={isRefreshingCache}
 		onpointerdown={(event) => event.stopPropagation()}
 		onclick={handleRefreshCache}
 	>
-		<time
-			class="text-[0.65rem] font-medium text-secondary/90 tabular-nums"
-			datetime={queryCachedAt ?? undefined}
-		>
-			{queryCacheLocal?.day ?? '—'}
-		</time>
+		<DatabaseZap class="size-3 text-secondary/50" />
 		{#if isRefreshingCache}
-			<LoaderCircle class="h-3.5 w-3.5 animate-spin" />
+			<LoaderCircle class="size-4 animate-spin text-secondary" />
 		{:else}
-			<RotateCwClock class="h-3.5 w-3.5" />
+			<time
+				class="text-center text-xs font-medium text-secondary/70 tabular-nums"
+				datetime={queryCachedAt ?? undefined}
+			>
+				{queryCacheAge ?? '—'}
+			</time>
 		{/if}
 		{#if queryCacheLocal}
 			<span
 				class="pointer-events-none absolute bottom-[calc(100%+0.25rem)] left-1/2 z-40 -translate-x-1/2 border border-primary/50 bg-background px-1.5 py-0.5 text-[0.65rem] whitespace-nowrap text-primary tabular-nums opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
 				role="tooltip"
 			>
-				{queryCacheLocal.time}
+				Update cache
 			</span>
 		{/if}
 	</button>
 {/snippet}
 
-{#snippet loader(enabled: boolean)}
-	<p class="col-span-2 row-span-2 mb-2 {enabled ? 'mt-1' : 'mt-0.5'} text-xs text-primary/50">
-		(loading)
-	</p>
-	<LoaderCircle class="row-span-2 animate-spin" />
-{/snippet}
-
 <style lang="postcss">
 	.source-card-checked {
 		grid-template-columns:
-			1rem 40px minmax(0, auto) minmax(0, 1fr) minmax(4.6rem, 5.4rem)
+			1rem 40px minmax(0, auto) minmax(0, 1fr) 2rem
 			1rem 3.5rem;
 		grid-template-rows: 1fr 1rem;
 	}

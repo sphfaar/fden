@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 import { CATALOG_CSP_HOSTS } from './src/lib/safeCatalogUrl.ts';
 
-export default defineConfig({
+const config = defineConfig({
 	plugins: [
 		tailwindcss(),
 		sveltekit({
@@ -34,3 +34,5 @@ export default defineConfig({
 		})
 	]
 });
+
+export default config;

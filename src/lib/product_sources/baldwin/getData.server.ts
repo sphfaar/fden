@@ -108,7 +108,6 @@ export const getProducts: GetProducts = async (
 					resData.grouped[
 						`compPartId_s:("${formattedCode}" OR ${formattedCode}* OR *${formattedCode}*)`
 					].doclist.numFound, // NOTE: Assuming this field exists for total; adjust if needed based on actual response.
-				maxItemsPagination: null, // From group.limit.
 				page
 			},
 			products

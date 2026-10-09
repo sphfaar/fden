@@ -21,7 +21,6 @@ export const getProducts: GetProducts = async (code, _maxItems, _config, page = 
 				status: 500,
 				currentItemsDisplayed: 0,
 				totalItems: 0,
-				maxItemsPagination: null,
 				page: 0
 			},
 			products: []

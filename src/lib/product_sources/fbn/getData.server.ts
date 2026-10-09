@@ -121,7 +121,7 @@ export const getProducts: GetProducts = async (code, _maxItems, config, page = 1
 						? pageNumber < nPages
 							? String((nPages - 1) * 9) + '+'
 							: nPages * nProducts
-						: null
+						: undefined
 			},
 			config,
 			page,

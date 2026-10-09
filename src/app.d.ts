@@ -51,13 +51,13 @@ declare global {
 	interface MetaData {
 		status: number;
 		currentItemsDisplayed: number;
-		totalItems: number | string | null; //if string the total item is unknown, eg. "120+ items"
-		maxItemsPagination: number | null;
+		totalItems?: number | string; //if string the total item is unknown, eg. "120+ items"
+		maxItemsPagination?: number;
 		page: number;
-		pages?: number | null;
+		pages?: number;
 		performanceTimings?: {
-			proxyToSource?: number | null;
-			clientToProxy?: number | null;
+			proxyToSource?: number;
+			clientToProxy?: number;
 		};
 	}
 

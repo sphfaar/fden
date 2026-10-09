@@ -92,9 +92,9 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 							if (page === 1) return String(nProducts + '+');
 							return 50 * (page - 1) + nProducts;
 						}
-						return null;
+						return undefined;
 					}
-					return null;
+					return undefined;
 				}
 			},
 			config,

@@ -65,7 +65,7 @@ export const getProducts: GetProducts = async (code, maxItems, config, page: num
 						(resData.contents[0].MainContent[0].competitorPartsCount ?? NaN) /
 							(resData.contents[0].MainContent[0].customerPartsPerPage ?? NaN)
 					),
-				pagination: (resData) => resData.contents[0].MainContent[0].customerPartsPerPage ?? null,
+				pagination: (resData) => resData.contents[0].MainContent[0].customerPartsPerPage,
 				totalItems: (resData) => Number(resData.contents[0].MainContent[0].competitorPartsCount)
 			},
 			config,

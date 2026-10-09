@@ -13,7 +13,7 @@ interface ParsingFunctions<T> {
 		page?: number,
 		nProducts?: number,
 		nPages?: number
-	) => number | string | null;
+	) => number | string | undefined;
 	documentToHtml?: (resData: T) => string;
 }
 
@@ -33,9 +33,7 @@ export async function getHtmlToProducts<T>(
 				meta: {
 					status: response.status,
 					currentItemsDisplayed: 0,
-					totalItems: null,
-					page: 0,
-					maxItemsPagination: null
+					page: 0
 				},
 				products: []
 			};
@@ -48,13 +46,13 @@ export async function getHtmlToProducts<T>(
 			parsingFunctions.documentToHtml ? parsingFunctions.documentToHtml(html) : html
 		);
 		const tableRows = parsingFunctions.tableRows(document);
-		const nPages: number | null = parsingFunctions.nPages
+		const nPages: number | undefined = parsingFunctions.nPages
 			? parsingFunctions.nPages(document)
-			: null;
+			: undefined;
 		const products: Product[] = parsingFunctions.rowsIterator(tableRows);
-		const totalItems: number | string | null = parsingFunctions.totalItems
-			? parsingFunctions.totalItems(document, page, products.length, nPages ?? undefined)
-			: null;
+		const totalItems: number | string | undefined = parsingFunctions.totalItems
+			? parsingFunctions.totalItems(document, page, products.length, nPages)
+			: undefined;
 		return {
 			meta: {
 				status: response.status,
@@ -62,9 +60,9 @@ export async function getHtmlToProducts<T>(
 				totalItems: totalItems,
 				page: page,
 				pages: nPages,
-				maxItemsPagination: pagination ?? null,
+				maxItemsPagination: pagination,
 				performanceTimings: {
-					proxyToSource: reqEnd && reqStart ? reqEnd - reqStart : null
+					proxyToSource: reqEnd && reqStart ? reqEnd - reqStart : undefined
 				}
 			},
 			products: products

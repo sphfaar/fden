@@ -2,6 +2,7 @@ import prettier from 'eslint-config-prettier';
 import js from '@eslint/js';
 import { defineConfig, includeIgnoreFile } from 'eslint/config';
 import svelte from 'eslint-plugin-svelte';
+import unicorn from 'eslint-plugin-unicorn';
 import globals from 'globals';
 import path from 'node:path';
 import ts from 'typescript-eslint';
@@ -13,6 +14,16 @@ export default defineConfig(
 	js.configs.recommended,
 	ts.configs.recommended,
 	svelte.configs.recommended,
+	{
+		files: ['vite.config.ts'],
+		plugins: {
+			unicorn
+		},
+		extends: ['unicorn/recommended'],
+		languageOptions: {
+			parser: ts.parser
+		}
+	},
 	prettier,
 	svelte.configs.prettier,
 	{

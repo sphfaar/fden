@@ -39,7 +39,7 @@ export const getProducts: GetProducts = async (code, maxItems, config) => {
 					return products;
 				},
 				totalItems: (document) =>
-					Math.min(Number(document.querySelector('')?.textContent ?? NaN), nItems) ?? null
+					Math.min(Number(document.querySelector('')?.textContent ?? NaN), nItems)
 			},
 			config
 		);

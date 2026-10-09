@@ -5,9 +5,9 @@ import axios from '#lib/product_sources/axios.server.js';
 
 interface ParsingFunctions<T> {
 	rowsIterator: (resData: T) => Product[];
-	nPages?: ((resData: T) => number) | null;
-	pagination?: number | ((resData: T) => number | null);
-	totalItems?: (resData: T) => number | string | null;
+	nPages?: (resData: T) => number;
+	pagination?: number | ((resData: T) => number | undefined);
+	totalItems?: (resData: T) => number | string | undefined;
 }
 export async function getJsonToProducts<T>(
 	sourceID: string,
@@ -24,9 +24,7 @@ export async function getJsonToProducts<T>(
 				meta: {
 					status: response.status,
 					currentItemsDisplayed: 0,
-					totalItems: null,
-					page: 0,
-					maxItemsPagination: null
+					page: 0
 				},
 				products: []
 			};
@@ -40,7 +38,7 @@ export async function getJsonToProducts<T>(
 				currentItemsDisplayed: products.length,
 				totalItems: parsingFunctions.totalItems
 					? parsingFunctions.totalItems(responseData)
-					: null,
+					: undefined,
 				page: page ?? 1,
 				pages: parsingFunctions.nPages ? parsingFunctions.nPages(responseData) : undefined,
 				maxItemsPagination:
@@ -48,9 +46,9 @@ export async function getJsonToProducts<T>(
 						? parsingFunctions.pagination
 						: parsingFunctions.pagination
 							? parsingFunctions.pagination(responseData)
-							: null,
+							: undefined,
 				performanceTimings: {
-					proxyToSource: reqEnd && reqStart ? reqEnd - reqStart : null
+					proxyToSource: reqEnd && reqStart ? reqEnd - reqStart : undefined
 				}
 			},
 			products: products

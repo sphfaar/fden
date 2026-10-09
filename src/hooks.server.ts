@@ -11,5 +11,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	event.locals.srcSessions = srcSessions;
 
-	return await resolve(event);
+	const response = await resolve(event);
+	response.headers.set('X-Content-Type-Options', 'nosniff');
+	response.headers.set('X-Frame-Options', 'DENY');
+	return response;
 };

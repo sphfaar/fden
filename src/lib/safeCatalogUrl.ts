@@ -13,7 +13,12 @@ const ALLOWED_HOST_SUFFIXES = [
 	'parker.com',
 	'hydac.com',
 	'filtrationgroup.com'
-];
+] as const;
+
+/** Apex and wildcard host sources for CSP `img-src`, matching {@link catalogHttpsUrl}. */
+export const CATALOG_CSP_HOSTS = ALLOWED_HOST_SUFFIXES.flatMap(
+	(suffix) => [`https://${suffix}`, `https://*.${suffix}`] as const
+);
 
 function allowedHost(hostname: string): boolean {
 	const host = hostname.toLowerCase().replace(/\.$/, '');

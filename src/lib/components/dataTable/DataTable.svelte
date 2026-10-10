@@ -641,7 +641,7 @@
 				{#each row.getAllCells() as cell (cell.id)}
 					<td
 						class={[
-							cell.column.id === 'thumbnails' ? 'relative h-px p-0 align-middle' : cellClass,
+							cell.column.id === 'thumbnails' ? 'relative overflow-hidden p-0 align-middle' : cellClass,
 							draggingColumnId === cell.column.id && 'opacity-40',
 							dropTargetColumnId === cell.column.id &&
 								draggingColumnId !== cell.column.id &&

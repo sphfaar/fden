@@ -5,7 +5,7 @@ export const descriptors: SourceDescriptors = {
 	sourceID: 'wixeu',
 	name: 'WIX EU',
 	logo: logo,
-	scrapingType: 'HTML parser',
+	scrapingType: 'JSON API',
 	isLoggedIn: undefined
 };
 

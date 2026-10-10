@@ -42,16 +42,20 @@ type WixEuCrossReferenceItem =
 type WixEuAttributeList =
 	readonly { key: string; value: string | null; label: string | null }[] | null | undefined;
 
+function catalogText(value: string | null | undefined): string | undefined {
+	const text = value?.trim().replaceAll('&amp;', '&');
+	return text || undefined;
+}
+
 function attributeValue(attributes: WixEuAttributeList, key: string): string | undefined {
-	const value = attributes?.find((attribute) => attribute.key === key)?.value?.trim();
-	return value || undefined;
+	return catalogText(attributes?.find((attribute) => attribute.key === key)?.value);
 }
 
 function labeledValue(attributes: WixEuAttributeList, key: string): string | undefined {
 	const found = attributes?.find((attribute) => attribute.key === key);
-	const value = found?.value?.trim();
+	const value = catalogText(found?.value);
 	if (!value) return undefined;
-	const label = found?.label?.trim();
+	const label = catalogText(found?.label);
 	return label ? `${label} ${value}` : value;
 }
 
@@ -77,17 +81,29 @@ function joinedText(values: readonly (string | undefined)[]): string | undefined
 
 function categoryOf(row: WixEuCrossReferenceItem): string | undefined {
 	const attributes = row.product?.attributes;
-	const family = row.filterBy?.trim() || attributeValue(attributes, 'aa_product_family');
+	const family = catalogText(row.filterBy) || attributeValue(attributes, 'aa_product_family');
 	const subfamily = attributeValue(attributes, 'aa_product_subfamily');
 	return family && subfamily && subfamily.toLowerCase() !== family.toLowerCase()
 		? `${family} | ${subfamily}`
 		: family || subfamily;
 }
 
+// Spin-on rows use thread_size. Inline filters publish entry and exit instead.
+function threadSizeOf(attributes: WixEuAttributeList): string | undefined {
+	const thread = attributeValue(attributes, 'thread_size');
+	if (thread) return thread;
+	const entry = attributeValue(attributes, 'thread_size_entry');
+	const exit = attributeValue(attributes, 'thread_size_exit');
+	if (entry && exit && entry !== exit) {
+		return `${labeledValue(attributes, 'thread_size_entry')}; ${labeledValue(attributes, 'thread_size_exit')}`;
+	}
+	return entry || exit;
+}
+
 function toProduct(row: WixEuCrossReferenceItem): Product {
 	const attributes = row.product?.attributes;
 	const salesDesignation = attributeValue(attributes, 'sales_designation');
-	const productName = row.product?.name?.trim();
+	const productName = catalogText(row.product?.name);
 	const height = millimeters(attributeValue(attributes, 'height'));
 	const externalDiameter = firstMillimeters(attributes, [
 		'outer_diameter',
@@ -96,11 +112,13 @@ function toProduct(row: WixEuCrossReferenceItem): Product {
 		'outside_diameter_bottom'
 	]);
 	const internalDiameter = firstMillimeters(attributes, [
+		'inner_diameter',
 		'inner_diameter_1',
 		'inside_diameter_top',
 		'inside_diameter_bottom',
 		'inner_diameter_2'
 	]);
+	const threadSize = threadSizeOf(attributes);
 	const mediaType = attributeValue(attributes, 'filter_media_material');
 	const efficiency = [
 		labeledValue(attributes, 'nominal_micron_rating'),
@@ -122,20 +140,24 @@ function toProduct(row: WixEuCrossReferenceItem): Product {
 	if (externalDiameter !== undefined) dimensions.externalDiameter = externalDiameter;
 	if (internalDiameter !== undefined) dimensions.internalDiameter = internalDiameter;
 	if (height !== undefined) dimensions.height = height;
+	if (threadSize) dimensions.threadSize = threadSize;
 	const specs: Product['specs'] = {};
 	if (mediaType) specs.mediaType = mediaType;
 	if (efficiency) specs.efficiency = efficiency;
 
 	return {
-		manufacturer: row.manufacturer?.trim() ?? '',
-		manufacturer_code: row.externalProductName?.trim() ?? '',
+		manufacturer: catalogText(row.manufacturer) ?? '',
+		manufacturer_code: catalogText(row.externalProductName) ?? '',
 		source_reference_code: salesDesignation || productName || 'no equivalent',
 		detailsUrl,
 		description,
 		longDescription,
 		category: categoryOf(row),
 		dimensions:
-			externalDiameter !== undefined || internalDiameter !== undefined || height !== undefined
+			externalDiameter !== undefined ||
+			internalDiameter !== undefined ||
+			height !== undefined ||
+			threadSize !== undefined
 				? dimensions
 				: undefined,
 		specs: mediaType || efficiency ? specs : undefined

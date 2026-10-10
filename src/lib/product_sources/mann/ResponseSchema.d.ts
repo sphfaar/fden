@@ -83,23 +83,25 @@ interface CrossReference {
 }
 
 interface CrossReferenceItem {
-	readonly product: PurpleProduct;
-	readonly externalNumber: string;
+	readonly product: PurpleProduct | null;
+	readonly externalNumber: string | null;
 	readonly intProductIdentifier: string;
-	readonly externalProductName: string;
-	readonly manufacturer: Manufacturer;
-	readonly filterBy: string;
+	readonly externalProductName: string | null;
+	readonly manufacturer: string;
+	readonly filterBy: string | null;
+	readonly textLinkages?: Linkage[];
 	readonly __typename: PurpleTypename;
+}
+
+interface Linkage {
+	readonly module_name?: string | null;
+	readonly module_unit?: string | null;
+	readonly module_value?: string | null;
+	readonly __typename?: string;
 }
 
 enum PurpleTypename {
 	SearchEXTProductItem = 'SearchExtProductItem'
-}
-
-enum Manufacturer {
-	FahrDeutzFahr = 'FAHR (DEUTZ-FAHR)',
-	MpFiltri = 'MP FILTRI',
-	VolvoTrucksVceVmePenta = 'VOLVO (TRUCKS/VCE/VME/PENTA)'
 }
 
 interface PurpleProduct {

@@ -23,7 +23,10 @@ const EXTERNAL_DIAMETER = 'BAB376001_external_diameter';
 const INNER_DIAMETER = 'BAA563001_inner_diameter';
 const FINENESS = 'VDV000023_ah_filter_fineness';
 const MEDIA = 'VDV000030_ah_filtration_material';
+const CONNECTION = 'VDV000020_ah_connection_air_breather';
 const MICRONS = /(?:µm|μm)/u;
+// Connection is a thread ("M42x2", "G3/4", "G3/4A"). A bore ("Ø24") or "-" is not.
+const THREAD = /^(?:M\d|G\d)/i;
 
 const catalogHeaders = {
 	...headers,
@@ -44,6 +47,12 @@ function attributeValue(
 ): string | undefined {
 	const value = attributes?.find((attribute) => attribute.code === code)?.value?.trim();
 	return value || undefined;
+}
+
+function threadSize(value: string | undefined): string | undefined {
+	if (!value) return undefined;
+	const trimmed = value.trim();
+	return THREAD.test(trimmed) ? trimmed : undefined;
 }
 
 function millimeters(value: string | undefined): number | undefined {
@@ -122,11 +131,18 @@ function applyDetails(product: Product, details: ArgohytosDetails): void {
 	);
 	const internalDiameter = millimeters(attributeValue(details.extendedAttributes, INNER_DIAMETER));
 	const height = millimeters(attributeValue(details.extendedAttributes, LENGTH));
-	if (externalDiameter !== undefined || internalDiameter !== undefined || height !== undefined) {
+	const thread = threadSize(attributeValue(details.extendedAttributes, CONNECTION));
+	if (
+		externalDiameter !== undefined ||
+		internalDiameter !== undefined ||
+		height !== undefined ||
+		thread
+	) {
 		product.dimensions = {};
 		if (externalDiameter !== undefined) product.dimensions.externalDiameter = externalDiameter;
 		if (internalDiameter !== undefined) product.dimensions.internalDiameter = internalDiameter;
 		if (height !== undefined) product.dimensions.height = height;
+		if (thread) product.dimensions.threadSize = thread;
 	}
 
 	if (product.thumbnails) return;
@@ -194,10 +210,13 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 			{
 				rowsIterator: (responseData) => {
 					const rows = responseData.data ?? [];
+					// count ends before this page. Offset is ignored, so a short body is page 1.
 					const pageRows =
-						offset > 0 && rows.length > pageSize
-							? rows.slice(offset, offset + pageSize)
-							: rows.slice(0, pageSize);
+						typeof responseData.count === 'number' && responseData.count <= offset
+							? []
+							: offset > 0 && rows.length > pageSize
+								? rows.slice(offset, offset + pageSize)
+								: rows.slice(0, pageSize);
 					return pageRows.map((row) => {
 						const product = toProduct(row);
 						const sku = row.sku?.trim() || row.id?.trim();

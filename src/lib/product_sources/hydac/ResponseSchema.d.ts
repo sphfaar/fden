@@ -1,9 +1,9 @@
 export default interface HydacSchema {
 	readonly resultCount: number;
-	readonly relation: Relation[];
+	readonly relation: HydacRelation[];
 }
 
-interface Relation {
+export interface HydacRelation {
 	readonly competitor: Competitor;
 	readonly hydac: Hydac;
 }
@@ -26,7 +26,7 @@ interface Hydac {
 	readonly mat_nr: string;
 	readonly manufacturer: Manufacturer;
 	readonly image: Image;
-	readonly product: Product;
+	readonly product: HydacProduct;
 }
 
 interface Image {
@@ -36,6 +36,9 @@ interface Image {
 	readonly link: string;
 }
 
-interface Product {
-	readonly is_salable: number;
+interface HydacProduct {
+	readonly is_salable: number | string;
+	readonly cart_enabled?: number;
+	readonly id?: number;
+	readonly mat_nr?: string;
 }

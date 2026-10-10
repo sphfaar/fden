@@ -46,6 +46,7 @@ export interface WixAssetHit {
 interface WixAttribute {
 	readonly key: string;
 	readonly value: string | null;
+	readonly label: string | null;
 }
 
 interface PageInfo {

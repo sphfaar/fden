@@ -2,7 +2,7 @@ export default interface HiFiSchema {
 	readonly id: string;
 	readonly query: Query;
 	readonly paging: Paging;
-	readonly results: Result[];
+	readonly results: HiFiResult[];
 	readonly duration: number;
 }
 
@@ -12,9 +12,9 @@ interface Paging {
 	readonly count: number;
 	readonly totalFetched: number;
 	readonly total: number;
-	readonly lastPage: number;
-	readonly prevPage: null;
-	readonly nextPage: number;
+	readonly lastPage?: number;
+	readonly prevPage?: number | null;
+	readonly nextPage?: number | null;
 }
 
 interface Query {
@@ -30,81 +30,50 @@ interface Filter {
 	readonly values: string[];
 }
 
-interface Result {
+export interface HiFiResult {
 	readonly id: string;
 	readonly reference: string;
-	readonly brand: Brand;
-	readonly products: Product[];
-	readonly isPublic: boolean;
+	readonly referenceSlug?: string;
+	readonly brand: HiFiBrand;
+	readonly products: HiFiCrossProduct[];
+	readonly isPublic?: boolean;
 }
 
-interface Brand {
+interface HiFiBrand {
 	readonly id: string;
 	readonly name: string;
+	readonly slug?: string;
 }
 
-interface Product {
+export interface HiFiCrossProduct {
 	readonly id: string;
-	readonly number: string;
+	readonly number?: string;
 	readonly reference: string;
-	readonly family: string;
-	readonly lifecycle: null;
-	readonly filterCode2: FilterCode2;
-	readonly abcdeClassification: null;
-	readonly classifiedPublic: boolean;
-	readonly designation: string;
-	readonly attributes: Attribute[];
-	readonly photos?: Drawing[];
-	readonly drawings: Drawing[];
-	// readonly customerReferences: any[];
-	readonly volume: number | null;
-	readonly weight: number | null;
-	readonly originCountry: null;
-	readonly commodityCode: null;
-	readonly filterCode4: null;
-	readonly gencode: null | string;
-	// readonly priceListCodes: any[];
-	readonly unit: ProductUnit;
-	readonly isPublic: boolean;
-	readonly isInternal: boolean;
-	readonly isNeutral: boolean;
-	readonly isPersonalized: boolean;
+	readonly referenceSlug?: string;
+	readonly family?: string;
+	readonly designation?: string;
+	readonly attributes?: HiFiAttribute[];
+	readonly photos?: HiFiMedia[];
+	readonly drawings?: HiFiMedia[];
+	readonly unit?: string;
+	readonly weight?: number | null;
+	readonly volume?: number | null;
+	readonly gencode?: string | null;
+	readonly replacementFor?: string[];
+	readonly isPublic?: boolean;
 }
 
-interface Attribute {
+export interface HiFiAttribute {
 	readonly code: string;
-	readonly type: Type;
-	readonly unit?: AttributeUnit;
+	readonly type?: string;
+	readonly unit?: string;
 	readonly decimalValue?: number;
-	readonly isPublic: boolean;
 	readonly stringValue?: string;
+	readonly isPublic?: boolean;
 }
 
-enum Type {
-	Decimal = 'DECIMAL',
-	String = 'STRING'
-}
-
-enum AttributeUnit {
-	Mm = 'mm',
-	Pcs = 'Pcs'
-}
-
-interface Drawing {
+export interface HiFiMedia {
 	readonly id: string;
-	readonly product: null;
-	readonly broadcastType: BroadcastType;
-	readonly broadcastOrder: number;
-}
-
-enum BroadcastType {
-	Public = 'PUBLIC'
-}
-
-enum FilterCode2 {
-	Std = 'STD'
-}
-
-enum ProductUnit {
-	Pcs = 'PCS'
+	readonly broadcastType?: string;
+	readonly broadcastOrder?: number;
 }

@@ -21,7 +21,7 @@ const query = `query ($search: String!, $currentPage: Int!, $pageSize: Int!) {
 					name
 					sku
 					urlKey: url_key
-					attributes: attributes_value { key value }
+					attributes: attributes_value { key value label }
 				}
 				externalProductName: ext_product_name
 				manufacturer: ext_brand_name
@@ -38,14 +38,30 @@ const query = `query ($search: String!, $currentPage: Int!, $pageSize: Int!) {
 }`;
 
 type WixCrossReferenceItem = WixSchema['data']['catalogSearch']['crossReference']['items'][number];
-type WixAttributeList = readonly { key: string; value: string | null }[] | null | undefined;
+type WixAttributeList =
+	readonly { key: string; value: string | null; label: string | null }[] | null | undefined;
 
-function attributeValue(
-	attributes: readonly { key: string; value: string | null }[] | null | undefined,
-	key: string
-): string | undefined {
-	const value = attributes?.find((attribute) => attribute.key === key)?.value?.trim();
-	return value || undefined;
+function catalogText(value: string | null | undefined): string | undefined {
+	const trimmed = value?.trim();
+	if (!trimmed) return undefined;
+	return trimmed
+		.replaceAll('&amp;', '&')
+		.replaceAll('&quot;', '"')
+		.replaceAll('&#39;', "'")
+		.replaceAll('&lt;', '<')
+		.replaceAll('&gt;', '>');
+}
+
+function attributeValue(attributes: WixAttributeList, key: string): string | undefined {
+	return catalogText(attributes?.find((attribute) => attribute.key === key)?.value);
+}
+
+function labeledValue(attributes: WixAttributeList, key: string): string | undefined {
+	const found = attributes?.find((attribute) => attribute.key === key);
+	const value = catalogText(found?.value);
+	if (!value) return undefined;
+	const label = catalogText(found?.label);
+	return label ? `${label} ${value}` : value;
 }
 
 function millimeters(value: string | undefined): number | undefined {
@@ -68,31 +84,55 @@ function joinedText(values: readonly (string | undefined)[]): string | undefined
 	return text || undefined;
 }
 
+function categoryOf(row: WixCrossReferenceItem): string | undefined {
+	const attributes = row.product?.attributes;
+	const family = catalogText(row.filterBy) || attributeValue(attributes, 'aa_product_family');
+	const subfamily = attributeValue(attributes, 'aa_product_subfamily');
+	if (family && subfamily && subfamily.toLowerCase() !== family.toLowerCase()) {
+		return `${family} | ${subfamily}`;
+	}
+	return family || subfamily;
+}
+
 function toProduct(row: WixCrossReferenceItem): Product {
 	const attributes = row.product?.attributes;
 	const salesDesignation = attributeValue(attributes, 'sales_designation');
-	const productName = row.product?.name?.trim();
+	const productName = catalogText(row.product?.name);
 	const height = millimeters(attributeValue(attributes, 'height'));
 	const externalDiameter = firstMillimeters(attributes, [
 		'outer_diameter',
 		'outer_diameter_1',
-		'outside_diameter_top'
+		'outside_diameter_top',
+		'outside_diameter_bottom',
+		'outer_diameter_2'
 	]);
 	const internalDiameter = firstMillimeters(attributes, [
 		'inner_diameter_1',
-		'inside_diameter_top'
+		'inside_diameter_top',
+		'inside_diameter_bottom',
+		'inner_diameter_2'
 	]);
+	// thread_size is the catalog thread. Inlet and outlet are port diameters in millimeters.
+	const threadSize = attributeValue(attributes, 'thread_size');
 	const packWidth = millimeters(attributeValue(attributes, 'width'));
 	const packLength = millimeters(attributeValue(attributes, 'length'));
 	const mediaType = attributeValue(attributes, 'filter_media_material');
-	const efficiency =
-		attributeValue(attributes, 'nominal_micron_rating') || attributeValue(attributes, 'beta_ratio');
-	const description = attributeValue(attributes, 'main_application_aa');
+	const efficiency = [
+		labeledValue(attributes, 'nominal_micron_rating'),
+		labeledValue(attributes, 'beta_ratio')
+	]
+		.filter((value) => value !== undefined)
+		.join('; ');
+	const fitment = attributeValue(attributes, 'main_application_aa');
+	const fact1 = attributeValue(attributes, 'marketing_text_filtertype_cont_key_fact1');
+	const fact2 = attributeValue(attributes, 'marketing_text_filtertype_cont_key_fact2');
+	const feature = attributeValue(attributes, 'product_feature_1');
+	const description = fitment || fact1 || feature;
 	const longDescription = joinedText([
-		attributeValue(attributes, 'marketing_text_filtertype_cont_key_fact1'),
-		attributeValue(attributes, 'marketing_text_filtertype_cont_key_fact2')
+		fact1 && fact1 !== description ? fact1 : undefined,
+		fact2,
+		feature && feature !== description ? feature : undefined
 	]);
-	const category = row.filterBy?.trim() || attributeValue(attributes, 'aa_product_family');
 	const urlKey = row.product?.urlKey?.trim();
 	const detailsUrl = catalogHttpsUrl(
 		urlKey ? `${CATALOG_ORIGIN}/en-eu/catalog/results/product.html/${urlKey}.html` : undefined
@@ -101,22 +141,25 @@ function toProduct(row: WixCrossReferenceItem): Product {
 	if (externalDiameter !== undefined) dimensions.externalDiameter = externalDiameter;
 	if (internalDiameter !== undefined) dimensions.internalDiameter = internalDiameter;
 	if (height !== undefined) dimensions.height = height;
+	if (threadSize) dimensions.threadSize = threadSize;
 	const specs: Product['specs'] = {};
 	if (mediaType) specs.mediaType = mediaType;
 	if (efficiency) specs.efficiency = efficiency;
+	const hasDimensions =
+		externalDiameter !== undefined ||
+		internalDiameter !== undefined ||
+		height !== undefined ||
+		threadSize !== undefined;
 
 	return {
-		manufacturer: row.manufacturer?.trim() ?? '',
-		manufacturer_code: row.externalProductName?.trim() ?? '',
+		manufacturer: catalogText(row.manufacturer) ?? '',
+		manufacturer_code: catalogText(row.externalProductName) ?? '',
 		source_reference_code: salesDesignation || productName || 'no equivalent',
 		detailsUrl,
 		description,
 		longDescription,
-		category: category || undefined,
-		dimensions:
-			externalDiameter !== undefined || internalDiameter !== undefined || height !== undefined
-				? dimensions
-				: undefined,
+		category: categoryOf(row),
+		dimensions: hasDimensions ? dimensions : undefined,
 		specs: mediaType || efficiency ? specs : undefined,
 		packaging:
 			packWidth !== undefined && packLength !== undefined && height !== undefined
@@ -126,7 +169,9 @@ function toProduct(row: WixCrossReferenceItem): Product {
 }
 
 function assetForSku(hits: readonly WixAssetHit[], sku: string): WixAssetHit | undefined {
-	const matches = hits.filter((hit) => hit.metaData?.productReferences?.includes(sku));
+	const matches = hits.filter(
+		(hit) => Boolean(hit.uriTemplate) && hit.metaData?.productReferences?.includes(sku)
+	);
 	return matches.find((hit) => !hit.metaData?.erpReferences?.length) ?? matches[0];
 }
 

@@ -30,7 +30,7 @@
 		{#if multiple}
 			<button
 				type="button"
-				class="absolute -top-[100vh] -bottom-[100vh] left-0 z-10 flex w-5 items-center justify-center text-primary/70 hover:bg-primary/10 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent"
+				class="absolute top-[-100vh] bottom-[-100vh] left-0 z-10 flex w-5 items-center justify-center text-primary/70 hover:bg-primary/10 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent"
 				aria-label="Previous thumbnail"
 				disabled={shown === 0}
 				onclick={() => step(-1)}
@@ -62,7 +62,7 @@
 					type="button"
 					tabindex={-1}
 					aria-hidden="true"
-					class="absolute inset-x-px bottom-px cursor-default bg-black/60 text-center text-[10px] leading-tight text-white tabular-nums focus:outline-hidden"
+					class="absolute inset-x-px bottom-px cursor-default text-right text-[10px] leading-tight tabular-nums bg-blend-color focus:outline-hidden"
 				>
 					{shown + 1}/{images.length}
 				</button>
@@ -71,7 +71,7 @@
 		{#if multiple}
 			<button
 				type="button"
-				class="absolute -top-[100vh] -bottom-[100vh] right-0 z-10 flex w-5 items-center justify-center text-primary/70 hover:bg-primary/10 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent"
+				class="absolute top-[-100vh] right-0 bottom-[-100vh] z-10 flex w-5 items-center justify-center text-primary/70 hover:bg-primary/10 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent"
 				aria-label="Next thumbnail"
 				disabled={shown === images.length - 1}
 				onclick={() => step(1)}

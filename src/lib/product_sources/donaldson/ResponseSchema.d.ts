@@ -341,3 +341,16 @@ interface EndecaAssemblerRequestInformation {
 interface Record {
 	readonly 'record.id': string;
 }
+
+// GET /store/rest/fetchProductAttrAndRecentlyViewed. Values are catalog strings.
+// Index signatures, not Record<>, because this module declares interface Record.
+export interface DonaldsonAttributeBody {
+	readonly dynamicAttributes?: { readonly [key: string]: unknown };
+	readonly packageDimensions?: { readonly [key: string]: unknown };
+	readonly otherInformation?: { readonly [key: string]: unknown };
+	readonly productWarnings?: readonly unknown[];
+}
+
+export interface DonaldsonAttributeResponse {
+	readonly productAttributesResponse?: DonaldsonAttributeBody;
+}

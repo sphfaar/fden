@@ -19,7 +19,12 @@ const ALLOWED_HOST_SUFFIXES = [
 	'voith-webshop-pim-public-prod.s3.eu-central-1.amazonaws.com',
 	'fleetguard.com',
 	'atmus.widen.net',
-	'cf-store.widencdn.net'
+	'cf-store.widencdn.net',
+	'ufi-aftermarket.com',
+	'faifiltri.it',
+	'filterinterchange.com',
+	'tecalliance.net',
+	'tecalliance.services'
 ] as const;
 
 /** Apex and wildcard host sources for CSP `img-src`, matching {@link catalogHttpsUrl}. */

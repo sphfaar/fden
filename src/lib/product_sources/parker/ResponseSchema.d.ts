@@ -52,9 +52,11 @@ enum Published {
 enum Type {
 	CylindersAndActuators = 'Cylinders and Actuators',
 	FiltersCollectorsSeparatorsPurifiers = 'Filters, Collectors, Separators, Purifiers',
+	FiltersSeparatorsPurifiers = 'Filters, Separators, Purifiers',
 	FittingsAndQuickCouplings = 'Fittings and Quick Couplings',
 	HosePipingAndTubing = 'Hose, Piping and Tubing',
 	MotorsDrivesAndControllers = 'Motors, Drives and Controllers',
+	Pumps = 'Pumps',
 	SealsAndORings = 'Seals and O-Rings',
 	Valves = 'Valves'
 }

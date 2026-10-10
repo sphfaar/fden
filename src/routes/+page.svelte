@@ -146,8 +146,9 @@
 	let appliedSearchKey = '';
 
 	function isSourceCardChecked(sourceID: string) {
-		return enabledSourceCards.find((enabledSC) => enabledSC.sourceDescriptors.sourceID === sourceID)
-			?.isChecked;
+		return enabledSourceCards.find(
+			(enabledSC) => enabledSC.sourceDescriptors.sourceID === sourceID
+		)?.isChecked;
 	}
 
 	// async function initTableWorker() {
@@ -207,7 +208,9 @@
 		const body: unknown = await response.json().catch(() => undefined);
 		const data = asProductsData(body);
 		if (!response.ok || !data) {
-			throw new Error(errorMessageFromBody(body, `error fetching products (${response.status})`));
+			throw new Error(
+				errorMessageFromBody(body, `error fetching products (${response.status})`)
+			);
 		}
 		return data;
 	}
@@ -271,7 +274,10 @@
 			if (firstPage) {
 				if (!stillCurrent(sourceID, token)) return;
 				loadedPages.set(loadedKey(sourceID, query), 1);
-				setSourceProducts(sourceDescs, Promise.resolve(productsDataFromCachedPage(firstPage)));
+				setSourceProducts(
+					sourceDescs,
+					Promise.resolve(productsDataFromCachedPage(firstPage))
+				);
 				return;
 			}
 
@@ -336,7 +342,9 @@
 				loadedPages.set(loadedKey(sourceID, query), loaded + 1);
 				setSourceProducts(
 					srcDescs,
-					Promise.resolve(mergeNextPage(oldProducts, productsDataFromCachedPage(nextCached)))
+					Promise.resolve(
+						mergeNextPage(oldProducts, productsDataFromCachedPage(nextCached))
+					)
 				);
 				return;
 			}
@@ -394,7 +402,9 @@
 				return;
 			}
 
-			const pages: CachedPage[] = [cachedPageFromProducts(1, first, new Date().toISOString())];
+			const pages: CachedPage[] = [
+				cachedPageFromProducts(1, first, new Date().toISOString())
+			];
 			let accumulated = productsDataFromCachedPage(pages[0]);
 			for (let pageNumber = 2; pageNumber <= targetPages; pageNumber += 1) {
 				const next = await postProducts('/api/getNextProducts', {
@@ -416,7 +426,9 @@
 			await queryCache.replace(sourceID, query, pages);
 			if (!stillCurrent(sourceID, token)) return;
 			loadedPages.set(loadedKey(sourceID, query), pages.length);
-			const cardNow = enabledSourceCards.find((src) => src.sourceDescriptors.sourceID === sourceID);
+			const cardNow = enabledSourceCards.find(
+				(src) => src.sourceDescriptors.sourceID === sourceID
+			);
 			if (cardNow) {
 				cardNow.lastCodeQuery = query;
 				cardNow.isDataLoaded = true;
@@ -581,7 +593,9 @@
 	$effect(() => {
 		const query = page.url.searchParams.get('q') ?? '';
 		const selectedIds = data.newSrcsDescriptors
-			.filter((src) => page.url.searchParams.get(src.sourceID) === '1' && src.isLoggedIn !== false)
+			.filter(
+				(src) => page.url.searchParams.get(src.sourceID) === '1' && src.isLoggedIn !== false
+			)
 			.map((src) => src.sourceID);
 		const key = `${query}|${selectedIds.join(',')}`;
 		if (!codeRgx.test(query) || selectedIds.length === 0) return;
@@ -663,7 +677,7 @@
 </nav>
 <main class="mx-auto w-full bg-primary/5">
 	<div
-		class="flex flex-wrap items-center gap-x-4 gap-y-2 px-8 pt-6 pb-4 text-sm text-primary lg:px-12"
+		class="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 px-8 pt-6 pb-4 text-sm text-primary lg:px-12"
 	>
 		<span class="inline-flex items-center gap-1.5">
 			<span
@@ -674,7 +688,11 @@
 			>
 				<DatabaseZap size={16} aria-hidden="true" />
 			</span>
-			<span class="query-chip-tooltip" role="tooltip" style:position-anchor="--cached-queries">
+			<span
+				class="query-chip-tooltip"
+				role="tooltip"
+				style:position-anchor="--cached-queries"
+			>
 				cached queries in your machine
 			</span>
 			<span class="font-bold tabular-nums">{queryCache.queryCount}</span>
@@ -764,7 +782,8 @@
 					class={[
 						'flex grow flex-col gap-px bg-background transition-shadow',
 						disabledSC.isMouseOverScrapingType &&
-							scrapingTypeColors.get(disabledSC.sourceDescriptors.scrapingType)?.style.shadow.bottom
+							scrapingTypeColors.get(disabledSC.sourceDescriptors.scrapingType)?.style
+								.shadow.bottom
 					]}
 					in:receive={{ key: disabledSC.sourceDescriptors.sourceID }}
 					out:send={{ key: disabledSC.sourceDescriptors.sourceID }}
@@ -784,8 +803,11 @@
 						lastCodeQuery={disabledSC.lastCodeQuery}
 					/>
 					<span
-						class="h-ps {scrapingTypeColors.get(disabledSC.sourceDescriptors.scrapingType)?.style
-							.bg} {disabledSC.sourceDescriptors.isLoggedIn === false ? 'opacity-20' : ''}"
+						class="h-ps {scrapingTypeColors.get(
+							disabledSC.sourceDescriptors.scrapingType
+						)?.style.bg} {disabledSC.sourceDescriptors.isLoggedIn === false
+							? 'opacity-20'
+							: ''}"
 					></span>
 				</div>
 			{/each}
@@ -806,7 +828,8 @@
 					class={[
 						'transition-shadow',
 						enabledSC.isMouseOverScrapingType
-							? scrapingTypeColors.get(enabledSC.sourceDescriptors.scrapingType)?.style.shadow.top
+							? scrapingTypeColors.get(enabledSC.sourceDescriptors.scrapingType)
+									?.style.shadow.top
 							: 'bg-background'
 					]}
 					in:receive={{ key: enabledSC.sourceDescriptors.sourceID }}
@@ -872,7 +895,9 @@
 				type="button"
 				class={[
 					'cursor-pointer border px-2 py-0.5 text-sm whitespace-nowrap transition-colors hover:bg-primary/80 hover:text-background',
-					code === entry.q ? 'border-primary bg-primary/20' : 'border-primary/50 bg-background'
+					code === entry.q
+						? 'border-primary bg-primary/20'
+						: 'border-primary/50 bg-background'
 				]}
 				onclick={() => searchFromEntry(entry)}
 			>

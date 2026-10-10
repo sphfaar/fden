@@ -1,64 +1,68 @@
 export default interface SfSchema {
 	readonly payload: Payload;
 	readonly success: boolean;
-	readonly message: null;
+	readonly message: string | null;
 	readonly modelErrors: null;
 }
 
 interface Payload {
-	readonly data: ItemElement[];
-	readonly itemsTotal: number;
+	readonly data: SfRow[];
+	readonly pagination: SfPagination;
 }
 
-interface ItemElement {
+export interface SfPagination {
+	readonly itemsTotal: number;
+	readonly pageSize: number;
+	readonly pagesCount: number;
+	readonly currentPage: number;
+}
+
+export interface SfRow {
 	readonly originalNumber: string;
 	readonly id: string;
 	readonly sku: string;
-	readonly item: ItemItem;
+	readonly item: SfItem;
 	readonly type: string;
-	readonly availability: Availability;
+	readonly availability: SfAvailability;
 	readonly favorite: boolean;
 	readonly pricePcs: number;
+	readonly priceUponRequest?: boolean;
 	readonly quantity: number;
-	readonly note: null;
-	readonly label: null;
+	readonly note: string | null;
+	readonly label: string | null;
 	readonly disabled: boolean;
 	readonly brand: string;
 }
 
-interface Availability {
-	readonly state: State;
-	readonly inStockDate: null;
+interface SfAvailability {
+	readonly state: string;
+	readonly inStockDate: string | null;
 }
 
-type State = 'comingSoon';
-
-interface ItemItem {
-	readonly image: Image;
-	readonly link: Link;
+interface SfItem {
+	readonly image: SfImage;
+	readonly link: SfLink;
 	readonly sublabel: string;
 }
 
-interface Image {
+interface SfImage {
 	readonly id: string;
 	readonly alt: string;
-	readonly defaultUrl: null | string;
-	readonly defaultUrlHiRes: null | string;
+	readonly defaultUrl: string | null;
+	readonly defaultUrlHiRes: string | null;
 }
 
-interface Link {
+interface SfLink {
 	readonly id: string;
 	readonly title: string;
 	readonly url: string;
-	readonly target: Target;
+	readonly target: string;
 	readonly isActive: boolean;
-	readonly smartLink: SmartLink;
+	readonly smartLink: SfSmartLink;
 	readonly localization: null;
 }
 
-interface SmartLink {
+interface SfSmartLink {
 	readonly itemId: null;
 	readonly titleCodename: null;
 }
-
-type Target = '_self';

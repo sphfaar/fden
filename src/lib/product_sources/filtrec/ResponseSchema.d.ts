@@ -4,32 +4,32 @@ export default interface FiltrecSchema {
 	readonly success: boolean;
 }
 
-interface Datum {
+export interface Datum {
 	readonly code: string;
-	readonly product: Product;
+	readonly product: FiltrecSearchProduct | null;
 	readonly manufacturer: string;
 	readonly catalog: string;
 	readonly productCode: string;
 }
 
-interface Product {
+export interface FiltrecSearchProduct {
 	readonly code: string;
-	readonly image: Image;
-	readonly diameter1: number;
-	readonly diameter2: null;
-	readonly height1: number;
+	readonly image: FiltrecImage | null;
+	readonly diameter1: number | null;
+	readonly diameter2: number | null;
+	readonly height1: number | null;
 	readonly measureG: string;
-	readonly beta: Beta;
+	readonly beta: FiltrecMedia | null;
 }
 
-interface Beta {
-	readonly code: string;
-	readonly media: string;
-	readonly mediaEng: string;
-}
-
-interface Image {
+export interface FiltrecImage {
 	readonly url: string;
+}
+
+export interface FiltrecMedia {
+	readonly code?: string;
+	readonly media?: string;
+	readonly mediaEng?: string;
 }
 
 interface Meta {
@@ -42,10 +42,43 @@ interface Meta {
 	readonly pageRange: number;
 	readonly startPage: number;
 	readonly endPage: number;
+	readonly next?: number;
 	readonly pagesInRange: number[];
 	readonly firstPageInRange: number;
 	readonly lastPageInRange: number;
 	readonly currentItemCount: number;
 	readonly firstItemNumber: number;
 	readonly lastItemNumber: number;
+}
+
+export interface FiltrecDetailsSchema {
+	readonly data?: FiltrecDetailsData;
+	readonly success?: boolean;
+}
+
+export interface FiltrecDetailsData {
+	readonly code: string;
+	readonly description: string;
+	readonly product: FiltrecDetailsProduct;
+	readonly note: string;
+	readonly productCode: string;
+}
+
+export interface FiltrecDetailsProduct {
+	readonly a?: boolean;
+	readonly flow?: string | null;
+	readonly measureG?: string;
+	readonly diameter1?: number | null;
+	readonly diameter2?: number | null;
+	readonly height1?: number | null;
+	readonly note?: string;
+	readonly noteEng?: string;
+	readonly image?: FiltrecImage | null;
+	readonly drawing?: FiltrecImage | null;
+	readonly beta?: FiltrecDetailsBeta | null;
+}
+
+export interface FiltrecDetailsBeta extends FiltrecMedia {
+	readonly efficiency1?: string | null;
+	readonly efficiency2?: string | null;
 }

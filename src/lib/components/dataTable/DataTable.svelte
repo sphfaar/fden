@@ -125,7 +125,8 @@
 	}
 
 	function columnIdFromEvent(event: DragEvent): string | null {
-		const el = event.target instanceof Element ? event.target.closest('[data-column-id]') : null;
+		const el =
+			event.target instanceof Element ? event.target.closest('[data-column-id]') : null;
 		return el?.getAttribute('data-column-id') ?? null;
 	}
 
@@ -252,7 +253,7 @@
 	// One entry per open row. Absent keys stay independent, so opening one row
 	// does not refresh the other hundreds.
 	let expandedRows = $state<Record<string, true>>({});
-	let lightboxUrl = $state<string | undefined>(undefined);
+	let lightboxUrl = $state<string | undefined>();
 	let lightbox: HTMLDialogElement | undefined;
 
 	const rowKeys = $derived.by(() => {
@@ -298,7 +299,10 @@
 
 	function textCaret(x: number, y: number): { node: Node; offset: number } | undefined {
 		const withPosition = document as Document & {
-			caretPositionFromPoint?(x: number, y: number): { offsetNode: Node; offset: number } | null;
+			caretPositionFromPoint?(
+				x: number,
+				y: number
+			): { offsetNode: Node; offset: number } | null;
 		};
 		const position = withPosition.caretPositionFromPoint?.(x, y);
 		if (position) return { node: position.offsetNode, offset: position.offset };
@@ -641,7 +645,9 @@
 				{#each row.getAllCells() as cell (cell.id)}
 					<td
 						class={[
-							cell.column.id === 'thumbnails' ? 'relative overflow-hidden p-0 align-middle' : cellClass,
+							cell.column.id === 'thumbnails'
+								? 'relative flex items-center justify-center overflow-hidden p-0 align-middle'
+								: cellClass,
 							draggingColumnId === cell.column.id && 'opacity-40',
 							dropTargetColumnId === cell.column.id &&
 								draggingColumnId !== cell.column.id &&

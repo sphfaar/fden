@@ -9,7 +9,7 @@ export interface CachedPage {
 	page: number;
 	fetchedAt: string;
 	products: Product[];
-	meta: MetaData;
+	meta: Metadata;
 }
 
 /** One cached search for a single source. `pagesFetched` is how far paging got. */

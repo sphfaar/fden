@@ -112,13 +112,13 @@
 	let enabledSourceCards: EnabledSourceCard[] = $state([]);
 
 	let sourceCardsMetadataPromises = $derived(
-		new Map<string, Promise<MetaData> | undefined>(
+		new Map<string, Promise<Metadata> | undefined>(
 			enabledSourceCards.map((enabledSC) => {
 				const pfspSrcDescsKey = prodsFromSrcPromises
 					.keys()
 					.find((srcDescs) => srcDescs.sourceID === enabledSC.sourceDescriptors.sourceID);
 				if (prodsFromSrcPromises && pfspSrcDescsKey) {
-					const metaDataPromise: Promise<MetaData> | undefined = prodsFromSrcPromises
+					const metaDataPromise: Promise<Metadata> | undefined = prodsFromSrcPromises
 						.get(pfspSrcDescsKey)
 						?.then((prodsData) => prodsData.meta);
 					return [enabledSC.sourceDescriptors.sourceID, metaDataPromise];

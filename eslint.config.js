@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/no-top-level-side-effects */
 import prettier from 'eslint-config-prettier';
 import js from '@eslint/js';
 import { defineConfig, includeIgnoreFile } from 'eslint/config';
@@ -15,15 +16,11 @@ export default defineConfig(
 	ts.configs.recommended,
 	svelte.configs.recommended,
 	{
-		files: ['**/*.js', '**/*.mjs', '**/*.cjs', '**/*.ts', '**/*.mts', '**/*.cts'],
 		ignores: ['**/*.svelte.js', '**/*.svelte.ts'],
 		plugins: {
 			unicorn
 		},
-		extends: ['unicorn/recommended'],
-		languageOptions: {
-			parser: ts.parser
-		}
+		extends: ['unicorn/recommended']
 	},
 	prettier,
 	svelte.configs.prettier,

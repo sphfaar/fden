@@ -46,7 +46,7 @@
 		lastCodeQuery
 	}: {
 		sourceDescriptors: SourceDescriptors;
-		metaDataPromise: Promise<MetaData> | undefined;
+		metaDataPromise: Promise<Metadata> | undefined;
 		loadNextProducts: (sourceID: string) => Promise<void>;
 		loadInitialProducts: (sourceID: string) => Promise<void>;
 		refreshCachedQuery: (sourceID: string) => Promise<void>;
@@ -57,7 +57,7 @@
 
 	let isLoadingNextProducts = $state(false);
 	let isRefreshingCache = $state(false);
-	let metaData = $state<MetaData | undefined>(undefined);
+	let metaData = $state<Metadata | undefined>(undefined);
 	let errorMessage = $state<string | undefined>(undefined);
 	let sourceCache = $derived(queryCache.bySource[sourceDescriptors.sourceID]);
 	let queryCachedAt = $derived(
@@ -327,7 +327,7 @@
 </button>
 
 <!-- button to load more items snipped because sevelte doesn't like buttons inside buttons (for hydratation errors) -->
-{#snippet buttonLoadMore(metaData: MetaData)}
+{#snippet buttonLoadMore(metaData: Metadata)}
 	{const isDisabled = $derived(
 		(metaData.totalItems &&
 			typeof metaData.totalItems !== 'string' &&

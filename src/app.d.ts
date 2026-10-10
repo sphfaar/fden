@@ -44,11 +44,11 @@ declare global {
 	}
 
 	interface ProductsData {
-		meta: MetaData;
+		meta: Metadata;
 		products: Product[];
 	}
 
-	interface MetaData {
+	interface Metadata {
 		status: number;
 		currentItemsDisplayed: number;
 		totalItems?: number | string; //if string the total item is unknown, eg. "120+ items"

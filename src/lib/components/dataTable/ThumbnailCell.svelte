@@ -1,0 +1,83 @@
+<script lang="ts">
+	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import { catalogHttpsUrls } from '#lib/safeCatalogUrl.js';
+
+	let {
+		urls,
+		onOpen
+	}: {
+		urls?: string[];
+		onOpen: (url: string) => void;
+	} = $props();
+
+	const images = $derived(catalogHttpsUrls(urls));
+	let index = $state(0);
+	// A shorter list keeps the last image instead of an empty frame.
+	const shown = $derived(images.length === 0 ? 0 : Math.min(index, images.length - 1));
+	const current = $derived(images[shown]);
+	const multiple = $derived(images.length > 1);
+
+	function step(delta: number) {
+		const next = shown + delta;
+		if (next < 0 || next >= images.length) return;
+		index = next;
+	}
+</script>
+
+{#if current}
+	<div class="flex h-full items-stretch">
+		{#if multiple}
+			<button
+				type="button"
+				class="flex cursor-pointer items-center px-1 text-primary/70 hover:bg-primary/10 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent"
+				aria-label="Previous thumbnail"
+				disabled={shown === 0}
+				onclick={() => step(-1)}
+			>
+				<ChevronLeft size={14} />
+			</button>
+		{/if}
+		<div class="relative my-auto">
+			<button
+				type="button"
+				class="cursor-pointer border border-primary/30 bg-white p-0.5 hover:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden"
+				aria-label={multiple
+					? `Expand thumbnail ${shown + 1} of ${images.length}`
+					: 'Expand thumbnail'}
+				onclick={() => onOpen(current)}
+			>
+				<img
+					src={current}
+					alt=""
+					loading="lazy"
+					decoding="async"
+					width="32"
+					height="32"
+					class="size-8 object-contain"
+				/>
+			</button>
+			{#if multiple}
+				<button
+					type="button"
+					tabindex={-1}
+					aria-hidden="true"
+					class="absolute inset-x-px bottom-px cursor-default bg-black/60 text-center text-[10px] leading-tight text-white tabular-nums focus:outline-hidden"
+				>
+					{shown + 1}/{images.length}
+				</button>
+			{/if}
+		</div>
+		{#if multiple}
+			<button
+				type="button"
+				class="flex cursor-pointer items-center px-1 text-primary/70 hover:bg-primary/10 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent"
+				aria-label="Next thumbnail"
+				disabled={shown === images.length - 1}
+				onclick={() => step(1)}
+			>
+				<ChevronRight size={14} />
+			</button>
+		{/if}
+	</div>
+{/if}

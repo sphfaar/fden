@@ -13,6 +13,7 @@ const ALLOWED_HOST_SUFFIXES = [
 	'baldwinfilters.com',
 	'parker.com',
 	'hydac.com',
+	'ikron.it',
 	'filtrationgroup.com',
 	'argo-hytos.com',
 	'voith-webshop-pim-public-prod.s3.eu-central-1.amazonaws.com',

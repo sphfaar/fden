@@ -48,8 +48,9 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Funnel from '@lucide/svelte/icons/funnel';
 	import GripVertical from '@lucide/svelte/icons/grip-vertical';
-	import { catalogHttpsUrl, catalogHttpsUrls } from '#lib/safeCatalogUrl.js';
+	import { catalogHttpsUrl } from '#lib/safeCatalogUrl.js';
 	import RowDetails from './RowDetails.svelte';
+	import ThumbnailCell from './ThumbnailCell.svelte';
 	import { onMount, tick } from 'svelte';
 	import { createTable, FlexRender, renderSnippet, type Updater } from '@tanstack/svelte-table';
 	import {
@@ -411,23 +412,7 @@
 {/snippet}
 
 {#snippet thumbnailsCell({ urls }: { urls?: string[] })}
-	{const safeUrls = catalogHttpsUrls(urls)}
-	{#if safeUrls.length > 0}
-		<ul>
-			{#each safeUrls as url (url)}
-				<li>
-					<img
-						src={url}
-						loading="lazy"
-						alt="p_img"
-						height={32}
-						width={32}
-						class="size-8 object-cover"
-					/>
-				</li>
-			{/each}
-		</ul>
-	{/if}
+	<ThumbnailCell {urls} onOpen={openThumbnail} />
 {/snippet}
 
 {#snippet detailsCell({ href }: { href?: string })}
@@ -656,7 +641,7 @@
 				{#each row.getAllCells() as cell (cell.id)}
 					<td
 						class={[
-							cellClass,
+							cell.column.id === 'thumbnails' ? 'relative h-px p-0 align-middle' : cellClass,
 							draggingColumnId === cell.column.id && 'opacity-40',
 							dropTargetColumnId === cell.column.id &&
 								draggingColumnId !== cell.column.id &&

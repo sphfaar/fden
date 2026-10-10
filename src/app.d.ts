@@ -71,7 +71,7 @@ declare global {
 			height?: number;
 		};
 		specs?: {
-			mediaType?: string;
+			mediaType?: string; // material of the filter
 			efficiency?: string; //filtration grade
 			flowDirection?: string;
 		};

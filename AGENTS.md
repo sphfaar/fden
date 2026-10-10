@@ -28,6 +28,8 @@ Use this section when adding a catalog, or when a catalog's JSON API or HTML pag
 
 Search is GET `/?q=`. Each checked source then POSTs `/api/getNewProducts` with `{ sourceID, code, maxItems }`. Load-more POSTs `/api/getNextProducts` with the previous `meta`. The route passes `meta.page` (the page already loaded). `getNextProducts` must request `page + 1`. Returning `undefined` makes that route respond 500. Codes match `/^[\w.\-/]{3,32}$/`. `maxItems` is an integer from 1 to 1000. Test with query `1111`. MANN is the reliable JSON control.
 
+When you add or update a source, map every `Product` property in `src/app.d.ts` that the response can support. When you finish, report the origin, the queries, and the first products of page 1 and of page 2, as in **Report when finished**. The user reviews those products and will request changes when a mapping is wrong.
+
 ### Choose a transport
 
 Prefer a JSON, GraphQL, or XHR body. Use HTML only when the rows exist only in a document.
@@ -65,11 +67,13 @@ Required `ProductsData`: `meta`, `products`.
 
 ### Product
 
-`rowsIterator` (or the hand-built loop, or the remote service) creates every `Product`. The helpers do not rename fields. The table copies `manufacturer_code` to Manufacturer Code, `source_reference_code` to Cross Code, and `manufacturer` to Manufacturer Name, plus `detailsUrl`, `thumbnails`, and `cachedAt`. Description, category, dimensions, specs, and packaging are kept on `Product` and in the cache. The table does not render them yet. Still map them when the task is to add or repair a source and the payload contains them.
+`rowsIterator` (or the hand-built loop, or the remote service) creates every `Product`. The helpers do not rename fields. The table copies `manufacturer_code` to Manufacturer Code, `source_reference_code` to Cross Code, and `manufacturer` to Manufacturer Name, plus `detailsUrl`, `thumbnails`, and `cachedAt`. Description, category, dimensions, specs, and packaging are stored on `Product` and in the cache. The table does not render them yet. Map them anyway.
+
+On every source you add or update, read one live response and `ResponseSchema.d.ts`, then set every `Product` property that response can fill. The per-source "unmapped" notes below are the current gaps. Fill a gap when the value's meaning is clear. Omit a property only when the source has no value for it, and list those omitted keys in the finish report. Do not invent a number or a label. Leave a single unlabeled dimension string unparsed. Leave `cachedAt` unset. `stampProducts` adds it when the browser cache stores the page.
 
 Required: `manufacturer`, `manufacturer_code` (the searched part as that catalog prints it), `source_reference_code` (that catalog's equivalent).
 
-Optional: `detailsUrl`, `description`, `longDescription`, `category`, `thumbnails?: string[]`, `cachedAt`. Leave `cachedAt` unset. `stampProducts` adds it when the browser cache stores the page.
+Optional: `detailsUrl`, `description`, `longDescription`, `category`, `thumbnails?: string[]`, `cachedAt`.
 
 Optional groups:
 
@@ -77,7 +81,7 @@ Optional groups:
 - `specs`: `mediaType`, `efficiency` (filtration grade), `flowDirection`.
 - `packaging`: include it only when `width`, `length`, and `height` are all numbers.
 
-Map a field only when a live sample or `ResponseSchema.d.ts` shows what it means. Leave a single unlabeled dimension string unparsed. Run every details URL and thumbnail through `catalogHttpsUrl(value, base)` in `src/lib/safeCatalogUrl.ts`. Add a new https host suffix to `ALLOWED_HOST_SUFFIXES` before using it. CSP `img-src` is derived from that list. Relative URLs need the catalog origin as `base`.
+Run every details URL and thumbnail through `catalogHttpsUrl(value, base)` in `src/lib/safeCatalogUrl.ts`. Add a new https host suffix to `ALLOWED_HOST_SUFFIXES` before using it. CSP `img-src` is derived from that list. Relative URLs need the catalog origin as `base`.
 
 ### Add or repair a source
 
@@ -88,11 +92,23 @@ When a source that used to work returns no rows:
 1. Read that folder's `getData.server.ts` and `ResponseSchema.d.ts`.
 2. Replay the same method, URL, params, and headers with code `1111`.
 3. Status 400 or above: the helper never calls `rowsIterator`. Fix headers, cookies, or body.
-4. Status 200 with empty products or a thrown read of `undefined`: the JSON path or CSS selector moved. Save one response, update `ResponseSchema.d.ts`, then update `rowsIterator` or `tableRows`. Keep the three required strings, then map any optional `Product` fields the new body still contains.
+4. Status 200 with empty products or a thrown read of `undefined`: the JSON path or CSS selector moved. Save one response, update `ResponseSchema.d.ts`, then update `rowsIterator` or `tableRows`. Keep the three required strings, and set every other `Product` property the new body can fill.
 5. Rows look right but load-more is wrong: fix `totalItems`, `pages`, and `maxItemsPagination` using the per-source notes below.
 6. Details links or thumbnails disappear while the codes are present: `catalogHttpsUrl` rejected the host. Add the suffix.
 
 Parker `api-key` and Baldwin `ocpApimSubscriptionKey` are public vendor keys already in those `getData.server.ts` files. Leave them unless the user asks to change them.
+
+### Report when finished
+
+End every source add or update with this report. The user reviews the products and will request changes when a field is wrong. Paste the `Product` objects. Do not replace them with a summary.
+
+- **Origin.** The upstream catalog origin the source called (scheme and host, plus the request URL). When the check went through this app, also the app origin, for example `http://127.0.0.1:5174`.
+- **Queries.** Every product code you sent. Include `1111` when that catalog returns rows for it.
+- **Page 1.** `meta.status`, `meta.page`, `meta.pages`, `meta.totalItems`, and `meta.currentItemsDisplayed`, then the first 8 `Product` objects. If the page has fewer than 8, include all of them.
+- **Page 2.** When `getNextProducts` returns a second page (`pages` greater than 1, or a second response with `products.length` greater than 0), the same meta fields and the first 8 `Product` objects of that page. When the source has no second page, say so.
+- **Omitted properties.** The `Product` keys you left unset because this source has no value for them.
+
+Call `getProducts` for page 1 and `getNextProducts` for page 2 (it requests `page + 1`). A browser check against `/api/getNewProducts` and `/api/getNextProducts` is the same contract.
 
 ### JSON sources (`getJsonToProducts`)
 

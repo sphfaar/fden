@@ -9,6 +9,7 @@ const ALLOWED_HOST_SUFFIXES = [
 	'mann-filter.com',
 	'filtrec.com',
 	'wixfilters.com',
+	'scene7.com',
 	'baldwinfilters.com',
 	'parker.com',
 	'hydac.com',

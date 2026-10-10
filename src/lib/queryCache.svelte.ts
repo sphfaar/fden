@@ -163,6 +163,59 @@ function isQuotaError(error: unknown): boolean {
 	);
 }
 
+/** Connection closed, or the store disappeared after a site-data wipe. */
+function isRecoverableDatabaseError(error: unknown): boolean {
+	return (
+		error instanceof DOMException &&
+		(error.name === 'NotFoundError' ||
+			error.name === 'InvalidStateError' ||
+			error.name === 'AbortError')
+	);
+}
+
+function rejectRequest(request: IDBRequest, reject: (error: Error) => void, fallback: string) {
+	request.onerror = (event) => {
+		event.preventDefault();
+		reject(request.error ?? new Error(fallback));
+	};
+}
+
+function openDatabase(onBlocked: () => void): Promise<IDBDatabase> {
+	return new Promise((resolve, reject) => {
+		let request: IDBOpenDBRequest;
+		try {
+			request = indexedDB.open(DB_NAME, DB_VERSION);
+		} catch (error) {
+			reject(error instanceof Error ? error : new Error(String(error)));
+			return;
+		}
+		request.onupgradeneeded = () => {
+			const db = request.result;
+			if (!db.objectStoreNames.contains(STORE)) {
+				db.createObjectStore(STORE, { keyPath: ['sourceID', 'code'] });
+			}
+		};
+		request.onsuccess = () => resolve(request.result);
+		request.onblocked = () => onBlocked();
+		rejectRequest(request, reject, 'indexedDB open failed');
+	});
+}
+
+function deleteDatabase(onBlocked: () => void): Promise<void> {
+	return new Promise((resolve, reject) => {
+		let request: IDBOpenDBRequest;
+		try {
+			request = indexedDB.deleteDatabase(DB_NAME);
+		} catch (error) {
+			reject(error instanceof Error ? error : new Error(String(error)));
+			return;
+		}
+		request.onsuccess = () => resolve();
+		request.onblocked = () => onBlocked();
+		rejectRequest(request, reject, 'indexedDB delete failed');
+	});
+}
+
 class QueryCache {
 	queryCount = $state(0);
 	byteSize = $state(0);
@@ -199,9 +252,52 @@ class QueryCache {
 	async #database(): Promise<IDBDatabase | null> {
 		if (!browser || typeof indexedDB === 'undefined') return null;
 		if (this.#db) return this.#db;
-		this.#opening ??= this.#open();
-		this.#db = await this.#opening;
-		if (this.#db && !this.#channel && typeof BroadcastChannel !== 'undefined') {
+		const opening = (this.#opening ??= this.#open());
+		try {
+			const db = await opening;
+			if (this.#db) return this.#db;
+			this.#db = db;
+			return db;
+		} finally {
+			if (this.#opening === opening) this.#opening = null;
+		}
+	}
+
+	#listen(db: IDBDatabase) {
+		const drop = () => {
+			if (this.#db !== db) return;
+			this.#db = null;
+			this.#opening = null;
+		};
+		// A site-data wipe asks every connection to close. Keeping one open leaves
+		// a database whose version matches but whose object stores are gone.
+		db.onversionchange = () => {
+			drop();
+			db.close();
+		};
+		db.onclose = () => drop();
+	}
+
+	#unblock() {
+		this.#db?.close();
+		this.#db = null;
+	}
+
+	// Firefox can keep this database at DB_VERSION after cookies and site data are
+	// cleared, with no object stores. onupgradeneeded does not run until it is removed.
+	async #open(): Promise<IDBDatabase | null> {
+		try {
+			return await this.#openFresh(false);
+		} catch (error) {
+			console.error(error);
+			return null;
+		}
+	}
+
+	async #openFresh(retried: boolean): Promise<IDBDatabase | null> {
+		const db = await openDatabase(() => this.#unblock());
+		this.#listen(db);
+		if (this.#channel === null && typeof BroadcastChannel !== 'undefined') {
 			try {
 				this.#channel = new BroadcastChannel(CHANNEL);
 				this.#channel.onmessage = () => {
@@ -211,42 +307,52 @@ class QueryCache {
 				console.error(error);
 			}
 		}
-		return this.#db;
+		if (db.objectStoreNames.contains(STORE)) return db;
+		db.close();
+		if (this.#db === db) this.#db = null;
+		if (retried) return null;
+		await deleteDatabase(() => {
+			db.close();
+			this.#unblock();
+		});
+		return this.#openFresh(true);
 	}
 
-	#open(): Promise<IDBDatabase | null> {
-		return new Promise((resolve) => {
-			let request: IDBOpenDBRequest;
+	async #transaction<T>(
+		mode: IDBTransactionMode,
+		run: (store: IDBObjectStore, tx: IDBTransaction) => Promise<T>
+	): Promise<T | undefined> {
+		for (let attempt = 0; attempt < 2; attempt += 1) {
+			const db = await this.#database();
+			if (!db) return undefined;
 			try {
-				request = indexedDB.open(DB_NAME, DB_VERSION);
+				const tx = db.transaction(STORE, mode);
+				return await run(tx.objectStore(STORE), tx);
 			} catch (error) {
-				console.error(error);
-				resolve(null);
-				return;
-			}
-			request.onupgradeneeded = () => {
-				const db = request.result;
-				if (!db.objectStoreNames.contains(STORE)) {
-					db.createObjectStore(STORE, { keyPath: ['sourceID', 'code'] });
+				if (attempt === 0 && isRecoverableDatabaseError(error)) {
+					db.close();
+					if (this.#db === db) this.#db = null;
+					continue;
 				}
-			};
-			request.onsuccess = () => resolve(request.result);
-			request.onerror = () => {
-				console.error(request.error);
-				resolve(null);
-			};
-			request.onblocked = () => resolve(null);
-		});
+				throw error;
+			}
+		}
+		return undefined;
 	}
 
 	async #get(sourceID: string, code: string): Promise<CachedQueryRecord | null> {
-		const db = await this.#database();
-		if (!db) return null;
-		const tx = db.transaction(STORE, 'readonly');
-		const value = await requestToPromise(tx.objectStore(STORE).get([sourceID, code]));
-		await transactionDone(tx);
-		if (!isRecord(value)) return null;
-		return value;
+		try {
+			const value = await this.#transaction('readonly', async (store, tx) => {
+				const result = await requestToPromise(store.get([sourceID, code]));
+				await transactionDone(tx);
+				return result;
+			});
+			if (!isRecord(value)) return null;
+			return value;
+		} catch (error) {
+			console.error(error);
+			return null;
+		}
 	}
 
 	async #putPage(sourceID: string, code: string, page: CachedPage): Promise<void> {
@@ -276,18 +382,16 @@ class QueryCache {
 	}
 
 	async #write(record: CachedQueryRecord): Promise<void> {
-		const db = await this.#database();
-		if (!db) return;
 		try {
-			await this.#put(db, record);
+			await this.#put(record);
 		} catch (error) {
 			if (!isQuotaError(error)) {
 				console.error(error);
 				return;
 			}
-			await this.#deleteOldest(db);
+			await this.#deleteOldest();
 			try {
-				await this.#put(db, record);
+				await this.#put(record);
 			} catch (retryError) {
 				console.error(retryError);
 				return;
@@ -297,16 +401,21 @@ class QueryCache {
 		this.#notify();
 	}
 
-	async #put(db: IDBDatabase, record: CachedQueryRecord): Promise<void> {
-		const tx = db.transaction(STORE, 'readwrite');
-		tx.objectStore(STORE).put(record);
-		await transactionDone(tx);
+	async #put(record: CachedQueryRecord): Promise<void> {
+		const wrote = await this.#transaction('readwrite', async (store, tx) => {
+			store.put(record);
+			await transactionDone(tx);
+			return true;
+		});
+		if (!wrote) throw new Error('indexedDB put failed');
 	}
 
-	async #deleteOldest(db: IDBDatabase): Promise<void> {
-		const tx = db.transaction(STORE, 'readwrite');
-		const records = await requestToPromise(tx.objectStore(STORE).getAll());
-		await transactionDone(tx);
+	async #deleteOldest(): Promise<void> {
+		const records = await this.#transaction('readonly', async (store, tx) => {
+			const rows = await requestToPromise(store.getAll());
+			await transactionDone(tx);
+			return rows;
+		});
 		if (!Array.isArray(records) || records.length === 0) return;
 		let oldest: CachedQueryRecord | null = null;
 		for (const value of records) {
@@ -314,17 +423,22 @@ class QueryCache {
 			if (!oldest || value.newest < oldest.newest) oldest = value;
 		}
 		if (!oldest) return;
-		const deleteTx = db.transaction(STORE, 'readwrite');
-		deleteTx.objectStore(STORE).delete([oldest.sourceID, oldest.code]);
-		await transactionDone(deleteTx);
+		const target = oldest;
+		await this.#transaction('readwrite', async (store, tx) => {
+			store.delete([target.sourceID, target.code]);
+			await transactionDone(tx);
+		});
 	}
 
 	async #purge(): Promise<void> {
-		const db = await this.#database();
-		if (!db) return;
-		const tx = db.transaction(STORE, 'readwrite');
-		tx.objectStore(STORE).clear();
-		await transactionDone(tx);
+		try {
+			await this.#transaction('readwrite', async (store, tx) => {
+				store.clear();
+				await transactionDone(tx);
+			});
+		} catch (error) {
+			console.error(error);
+		}
 		this.queryCount = 0;
 		this.byteSize = 0;
 		this.bySource = {};
@@ -333,38 +447,44 @@ class QueryCache {
 	}
 
 	async #refreshStats(): Promise<void> {
-		const db = await this.#database();
-		if (!db) {
+		let records: unknown;
+		try {
+			records = await this.#transaction('readonly', async (store, tx) => {
+				const rows = await requestToPromise(store.getAll());
+				await transactionDone(tx);
+				return rows;
+			});
+		} catch (error) {
+			console.error(error);
 			this.ready = false;
 			return;
 		}
-		const tx = db.transaction(STORE, 'readonly');
-		const records = await requestToPromise(tx.objectStore(STORE).getAll());
-		await transactionDone(tx);
+		if (!Array.isArray(records)) {
+			this.ready = false;
+			return;
+		}
 		const bySource: Record<string, SourceCacheStats> = {};
 		let byteSize = 0;
 		let queryCount = 0;
-		if (Array.isArray(records)) {
-			for (const value of records) {
-				if (!isRecord(value)) continue;
-				queryCount += 1;
-				byteSize += typeof value.byteSize === 'number' ? value.byteSize : 0;
-				const stats = bySource[value.sourceID] ?? {
-					queries: 0,
-					products: 0,
-					newestByCode: {}
-				};
-				stats.queries += 1;
-				stats.products += value.productCount ?? 0;
-				if (value.oldest && (!stats.oldest || value.oldest < stats.oldest)) {
-					stats.oldest = value.oldest;
-				}
-				if (value.newest && (!stats.newest || value.newest > stats.newest)) {
-					stats.newest = value.newest;
-				}
-				if (value.code && value.newest) stats.newestByCode[value.code] = value.newest;
-				bySource[value.sourceID] = stats;
+		for (const value of records) {
+			if (!isRecord(value)) continue;
+			queryCount += 1;
+			byteSize += typeof value.byteSize === 'number' ? value.byteSize : 0;
+			const stats = bySource[value.sourceID] ?? {
+				queries: 0,
+				products: 0,
+				newestByCode: {}
+			};
+			stats.queries += 1;
+			stats.products += value.productCount ?? 0;
+			if (value.oldest && (!stats.oldest || value.oldest < stats.oldest)) {
+				stats.oldest = value.oldest;
 			}
+			if (value.newest && (!stats.newest || value.newest > stats.newest)) {
+				stats.newest = value.newest;
+			}
+			if (value.code && value.newest) stats.newestByCode[value.code] = value.newest;
+			bySource[value.sourceID] = stats;
 		}
 		this.queryCount = queryCount;
 		this.byteSize = byteSize;

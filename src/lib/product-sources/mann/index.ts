@@ -1,0 +1,15 @@
+import { getProducts, getNextProducts } from './get-data.server';
+import banner from './banner.svg';
+
+export const descriptors: SourceDescriptors = {
+	sourceID: 'mann',
+	name: 'MANN',
+	banner: banner,
+	scrapingType: 'JSON API',
+	isLoggedIn: undefined
+};
+
+export const getters = {
+	getProducts,
+	getNextProducts
+};

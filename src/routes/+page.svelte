@@ -14,7 +14,7 @@
 		queryCache,
 		type CachedPage,
 		type CachedQueryRecord
-	} from '#lib/queryCache.svelte.js';
+	} from '#lib/query-cache.svelte.js';
 	import {
 		listFrequentQueries,
 		listRecentQueries,
@@ -22,21 +22,21 @@
 		recordSearch,
 		SEARCH_HISTORY_KEY,
 		type SearchEntry
-	} from '#lib/searchHistory.js';
+	} from '#lib/search-history.js';
 	import {
 		DEFAULT_LEGEND_SLIDER,
 		LEGEND_SLIDER_KEY,
 		loadLegendSlider,
 		saveLegendSlider
-	} from '#lib/legendSlider.js';
+	} from '#lib/legend-slider.js';
 	import { quintOut } from 'svelte/easing';
 	import { crossfade } from 'svelte/transition';
 	import { flip } from 'svelte/animate';
-	import ButtonsByScrapingType from '#lib/components/ButtonsByScrapingType.svelte';
-	import SourceCard from '#lib/components/SourceCard.svelte';
-	import DataTable from '#lib/components/dataTable/DataTable.svelte';
-	import SrcSessionForm from '#lib/components/SrcSessionForm.svelte';
-	import { scrapingTypeColors } from '#lib/scarpingTypes.js';
+	import ButtonsByScrapingType from '#lib/components/buttons-by-scraping-type.svelte';
+	import SourceCard from '#lib/components/source-card.svelte';
+	import DataTable from '#lib/components/data-table/data-table.svelte';
+	import SrcSessionForm from '#lib/components/src-session-form.svelte';
+	import { scrapingTypeColors } from '#lib/scarping-types.js';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
 	import Search from '@lucide/svelte/icons/search';
@@ -197,7 +197,7 @@
 	}
 
 	async function postProducts(
-		path: '/api/getNewProducts' | '/api/getNextProducts',
+		path: '/api/get-new-products' | '/api/get-next-products',
 		payload: Record<string, unknown>
 	): Promise<ProductsData> {
 		const response = await fetch(path, {
@@ -225,7 +225,7 @@
 
 	// The map is keyed by descriptor object. A new search replaces that object, so drop the previous entry or the table shows both.
 	function setSourceProducts(sourceDescs: SourceDescriptors, promise: Promise<ProductsData>) {
-		for (const key of [...prodsFromSrcPromises.keys()]) {
+		for (const key of prodsFromSrcPromises.keys()) {
 			if (key !== sourceDescs && key.sourceID === sourceDescs.sourceID) {
 				prodsFromSrcPromises.delete(key);
 			}
@@ -234,7 +234,9 @@
 	}
 
 	function queryForSource(sourceID: string) {
-		const card = enabledSourceCards.find((src) => src.sourceDescriptors.sourceID === sourceID);
+		const card = enabledSourceCards.find(
+			(source) => source.sourceDescriptors.sourceID === sourceID
+		);
 		const query = (card?.lastCodeQuery ?? code).trim();
 		return codeRgx.test(query) ? query : code.trim();
 	}
@@ -244,7 +246,9 @@
 		const sourceDescs = sourceDescriptorsFor(sourceID);
 		if (!sourceDescs) return;
 
-		const card = enabledSourceCards.find((src) => src.sourceDescriptors.sourceID === sourceID);
+		const card = enabledSourceCards.find(
+			(source) => source.sourceDescriptors.sourceID === sourceID
+		);
 		if (card) {
 			card.lastCodeQuery = query;
 			card.isDataLoaded = true;
@@ -281,7 +285,7 @@
 				return;
 			}
 
-			const fresh = await postProducts('/api/getNewProducts', {
+			const fresh = await postProducts('/api/get-new-products', {
 				sourceID,
 				code: query,
 				maxItems: maxItemsPerSrc
@@ -297,10 +301,12 @@
 			}
 			loadedPages.set(loadedKey(sourceID, query), 1);
 			setSourceProducts(sourceDescs, Promise.resolve(fresh));
-		} catch (err) {
-			console.error(err);
+		} catch (error) {
+			console.error(error);
 			if (!stillCurrent(sourceID, token)) return;
-			const rejected = Promise.reject(err instanceof Error ? err : new Error(String(err)));
+			const rejected = Promise.reject(
+				error instanceof Error ? error : new Error(String(error))
+			);
 			void rejected.catch(() => {});
 			setSourceProducts(sourceDescs, rejected);
 		} finally {
@@ -316,7 +322,7 @@
 		for (const [sourceDescs, promise] of prodsFromSrcPromises) {
 			if (sourceDescs.sourceID === sourceID) return { sourceDescs, promise };
 		}
-		return undefined;
+		return;
 	}
 
 	async function loadNextProducts(sourceID: string) {
@@ -330,7 +336,7 @@
 		try {
 			const oldProducts = await stored.promise;
 			if (!oldProducts || !stillCurrent(sourceID, token)) return;
-			const srcDescs = sourceDescriptorsFor(sourceID) ?? stored.sourceDescs;
+			const sourceDescs = sourceDescriptorsFor(sourceID) ?? stored.sourceDescs;
 
 			const cached = await queryCache.get(sourceID, query);
 			const loaded = loadedPages.get(loadedKey(sourceID, query)) ?? 1;
@@ -341,7 +347,7 @@
 				if (!stillCurrent(sourceID, token)) return;
 				loadedPages.set(loadedKey(sourceID, query), loaded + 1);
 				setSourceProducts(
-					srcDescs,
+					sourceDescs,
 					Promise.resolve(
 						mergeNextPage(oldProducts, productsDataFromCachedPage(nextCached))
 					)
@@ -349,24 +355,23 @@
 				return;
 			}
 
-			const responseData = await postProducts('/api/getNextProducts', {
+			const responseData = await postProducts('/api/get-next-products', {
 				sourceID,
 				meta: oldProducts.meta,
 				code: query,
 				maxItems: maxItemsPerSrc
 			});
-			if (!stillCurrent(sourceID, token)) return;
-			if (!isCacheableProducts(responseData)) return;
+			if (!stillCurrent(sourceID, token) || !isCacheableProducts(responseData)) return;
 			const page = cachedPageFromProducts(loaded + 1, responseData, new Date().toISOString());
 			await queryCache.putPage(sourceID, query, page);
 			if (!stillCurrent(sourceID, token)) return;
 			loadedPages.set(loadedKey(sourceID, query), loaded + 1);
 			setSourceProducts(
-				srcDescs,
+				sourceDescs,
 				Promise.resolve(mergeNextPage(oldProducts, productsDataFromCachedPage(page)))
 			);
-		} catch (err) {
-			console.error(err);
+		} catch (error) {
+			console.error(error);
 		} finally {
 			endTableLoad();
 		}
@@ -379,7 +384,9 @@
 		const sourceDescs = sourceDescriptorsFor(sourceID);
 		if (!sourceDescs || refreshingSources.has(sourceID)) return;
 
-		const card = enabledSourceCards.find((src) => src.sourceDescriptors.sourceID === sourceID);
+		const card = enabledSourceCards.find(
+			(source) => source.sourceDescriptors.sourceID === sourceID
+		);
 		if (card) {
 			card.lastCodeQuery = query;
 			card.isDataLoaded = true;
@@ -391,7 +398,7 @@
 		try {
 			const existing = await queryCache.get(sourceID, query);
 			const targetPages = Math.max(existing?.pagesFetched ?? 0, 1);
-			const first = await postProducts('/api/getNewProducts', {
+			const first = await postProducts('/api/get-new-products', {
 				sourceID,
 				code: query,
 				maxItems: maxItemsPerSrc
@@ -407,7 +414,7 @@
 			];
 			let accumulated = productsDataFromCachedPage(pages[0]);
 			for (let pageNumber = 2; pageNumber <= targetPages; pageNumber += 1) {
-				const next = await postProducts('/api/getNextProducts', {
+				const next = await postProducts('/api/get-next-products', {
 					sourceID,
 					meta: accumulated.meta,
 					code: query,
@@ -427,15 +434,15 @@
 			if (!stillCurrent(sourceID, token)) return;
 			loadedPages.set(loadedKey(sourceID, query), pages.length);
 			const cardNow = enabledSourceCards.find(
-				(src) => src.sourceDescriptors.sourceID === sourceID
+				(source) => source.sourceDescriptors.sourceID === sourceID
 			);
 			if (cardNow) {
 				cardNow.lastCodeQuery = query;
 				cardNow.isDataLoaded = true;
 			}
 			setSourceProducts(sourceDescs, Promise.resolve(accumulated));
-		} catch (err) {
-			console.error(err);
+		} catch (error) {
+			console.error(error);
 		} finally {
 			refreshingSources.delete(sourceID);
 			endTableLoad();
@@ -496,12 +503,11 @@
 	function legendSliderFromPointer(event: PointerEvent) {
 		const handle = legendSliderHandle;
 		const track = handle?.parentElement;
-		if (!handle || !track) return undefined;
+		if (!handle || !track) return;
 		const rect = track.getBoundingClientRect();
 		const handleW = handle.offsetWidth;
 		const max = rect.width - handleW;
-		if (max <= 0) return 0;
-		return clamp01((event.clientX - rect.left - handleW / 2) / max);
+		return max <= 0 ? 0 : clamp01((event.clientX - rect.left - handleW / 2) / max);
 	}
 
 	function updateLegendSlider(event: PointerEvent) {
@@ -594,9 +600,11 @@
 		const query = page.url.searchParams.get('q') ?? '';
 		const selectedIds = data.newSrcsDescriptors
 			.filter(
-				(src) => page.url.searchParams.get(src.sourceID) === '1' && src.isLoggedIn !== false
+				(source) =>
+					page.url.searchParams.get(source.sourceID) === '1' &&
+					source.isLoggedIn !== false
 			)
-			.map((src) => src.sourceID);
+			.map((source) => source.sourceID);
 		const key = `${query}|${selectedIds.join(',')}`;
 		if (!codeRgx.test(query) || selectedIds.length === 0) return;
 		untrack(() => {
@@ -607,8 +615,8 @@
 	});
 
 	$effect(() => {
-		prodsFromSrcPromises.forEach((prodsFromSrcPromise, srcDescs) => {
-			addFulfilledProdsToSrc(srcDescs, prodsFromSrcPromise);
+		prodsFromSrcPromises.forEach((prodsFromSourcePromise, sourceDescs) => {
+			addFulfilledProdsToSrc(sourceDescs, prodsFromSourcePromise);
 		});
 	});
 
@@ -621,8 +629,9 @@
 		const visibleUrl = shallowUrl ?? pageUrl;
 		const urlCode = visibleUrl.searchParams.get('q') ?? '';
 		const checkedFromUrl = descs.map(
-			(srcDesc) =>
-				visibleUrl.searchParams.get(srcDesc.sourceID) === '1' && srcDesc.isLoggedIn !== false
+			(sourceDesc) =>
+				visibleUrl.searchParams.get(sourceDesc.sourceID) === '1' &&
+				sourceDesc.isLoggedIn !== false
 		);
 		untrack(() => {
 			if (urlCode && urlCode !== code) code = urlCode;
@@ -632,18 +641,18 @@
 			untrack(() => {
 				const next: EnabledSourceCard[] = [];
 				for (let i = 0; i < descs.length; i++) {
-					const srcDesc = descs[i];
+					const sourceDesc = descs[i];
 					const isChecked = checkedFromUrl[i];
 					const existing = enabledSourceCards.find(
-						(card) => card.sourceDescriptors.sourceID === srcDesc.sourceID
+						(card) => card.sourceDescriptors.sourceID === sourceDesc.sourceID
 					);
 					if (existing) {
-						existing.sourceDescriptors = srcDesc;
+						existing.sourceDescriptors = sourceDesc;
 						existing.isChecked = isChecked;
 						next.push(existing);
 					} else {
 						next.push({
-							sourceDescriptors: srcDesc,
+							sourceDescriptors: sourceDesc,
 							isChecked,
 							isDataLoaded: isChecked,
 							isMouseOverScrapingType: false,
@@ -655,10 +664,10 @@
 			});
 			return;
 		}
-		enabledSourceCards = descs.map((srcDesc, i) => {
+		enabledSourceCards = descs.map((sourceDesc, i) => {
 			const isChecked = checkedFromUrl[i];
 			return {
-				sourceDescriptors: srcDesc,
+				sourceDescriptors: sourceDesc,
 				isChecked,
 				isDataLoaded: isChecked,
 				isMouseOverScrapingType: false,

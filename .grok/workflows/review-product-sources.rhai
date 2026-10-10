@@ -1,7 +1,7 @@
 let meta = #{
     name: "review-product-sources",
     description: "Review every catalog source, prefer JSON over HTML, and fill optional Product and Metadata fields",
-    when_to_use: "Repair or enrich src/lib/product_sources. /review-product-sources. Optional args.sources (array of source ids), args.code (default 1111), args.max_items (default 20). The review panel is sized from the agent budget, leaving two calls for Apply and Check.",
+    when_to_use: "Repair or enrich src/lib/product-sources. /review-product-sources. Optional args.sources (array of source ids), args.code (default 1111), args.max_items (default 20). The review panel is sized from the agent budget, leaving two calls for Apply and Check.",
     phases: [
         #{ title: "Review", detail: "one agent per catalog source" },
         #{ title: "Apply", detail: "host suffixes and AGENTS.md notes" },
@@ -79,15 +79,15 @@ fn review_prompt(source_id, code, max_items) {
     let p = "";
     p += "You are repairing one product source in the fden repo at /home/oskar/WORK/fden1. ";
     p += "Your source id is `" + source_id + "`. ";
-    p += "Edit only files under src/lib/product_sources/" + source_id + "/. ";
-    p += "Do not edit AGENTS.md, src/lib/product_sources/index.ts, src/lib/safeCatalogUrl.ts, or any other source folder. ";
+    p += "Edit only files under src/lib/product-sources/" + source_id + "/. ";
+    p += "Do not edit AGENTS.md, src/lib/product-sources/index.ts, src/lib/safe-catalog-url.ts, or any other source folder. ";
     p += "Do not commit, push, format the repo, start a dev server, or run git checkout, git reset, or git clean.\n\n";
     p += "Use read_file before you decide anything. Read these files first:\n";
     p += "- AGENTS.md from the heading `## Product sources` through the end of the file. Follow it. The per-source note for `" + source_id + "` is the current behavior.\n";
     p += "- src/app.d.ts interfaces ProductsData, Metadata, and Product.\n";
-    p += "- src/lib/product_sources/" + source_id + "/getData.server.ts and index.ts.\n";
-    p += "- src/lib/product_sources/" + source_id + "/ResponseSchema.d.ts when that file exists.\n";
-    p += "- src/lib/safeCatalogUrl.ts (ALLOWED_HOST_SUFFIXES) and the helpers getJsonToProductsData.server.ts and getHtmlToProductsData.server.ts.\n\n";
+    p += "- src/lib/product-sources/" + source_id + "/get-data.server.ts and index.ts.\n";
+    p += "- src/lib/product-sources/" + source_id + "/response-schema.d.ts when that file exists.\n";
+    p += "- src/lib/safe-catalog-url.ts (ALLOWED_HOST_SUFFIXES) and the helpers get-json-to-products-data.server.ts and get-html-to-products-data.server.ts.\n\n";
     p += "Test code: `" + code + "`. maxItems: " + max_items.to_string() + ".\n\n";
     p += "Live-check the current request with run_terminal_command (curl or the existing client). ";
     p += "Replay the same method, URL, params, and headers the source uses. ";
@@ -129,13 +129,13 @@ fn review_prompt(source_id, code, max_items) {
     p += "Do not edit the allowlist yourself. ";
     p += "If a host is missing, add its https suffix (registrable host, for example `example.com`) to host_suffixes and still call catalogHttpsUrl. ";
     p += "The Apply phase adds suffixes after every source agent finishes, so a thumbnail may still be dropped in this run. Paste the URL you would have kept.\n\n";
-    p += "Update ResponseSchema.d.ts when the JSON shape you parse changes. Keep scrapingType accurate (`JSON API` or `HTML parser`). ";
-    p += "getNextProducts must request page + 1. Returning undefined makes /api/getNextProducts respond 500. ";
+    p += "Update response-schema.d.ts when the JSON shape you parse changes. Keep scrapingType accurate (`JSON API` or `HTML parser`). ";
+    p += "getNextProducts must request page + 1. Returning undefined makes /api/get-next-products respond 500. ";
     p += "Leave getNextProducts undefined only when the catalog has a single response, and then say there is no second page.\n\n";
     p += "Call getProducts for page 1 and getNextProducts for page 2. ";
     p += "Do not start vite. Port 5173 is often a different app. Port 5174 is often fden. ";
     p += "If a server is already listening, confirm it is this repo before you POST. ";
-    p += "POST /api/getNewProducts with { sourceID, code, maxItems } and /api/getNextProducts with the previous meta. ";
+    p += "POST /api/get-new-products with { sourceID, code, maxItems } and /api/get-next-products with the previous meta. ";
     p += "If no fden server is up, replay the edited request and build the Product objects from that live body, and say the app origin was not used. ";
     p += "If a JSON experiment returns worse rows than the code you started from, put that previous behavior back by editing. Do not revert unrelated dirty files.\n\n";
     p += "FBN needs a real session token. Do not invent credentials. ";
@@ -157,7 +157,7 @@ fn review_prompt(source_id, code, max_items) {
     p
 }
 
-// Registered getters in src/lib/product_sources/index.ts. Shared helpers are not sources.
+// Registered getters in src/lib/product-sources/index.ts. Shared helpers are not sources.
 let all_sources = [
     "filtrec", "ufihyd", "ufiam", "hifi", "faifiltri", "wix", "wixeu", "parker",
     "hydac", "fleetguard", "donaldson", "mann", "sf", "baldwin", "ikron", "stauff",
@@ -285,8 +285,8 @@ let apply_note = "no shared-file updates";
 if compact.len() > 0 {
     let apply_prompt = "";
     apply_prompt += "You are updating two shared files in /home/oskar/WORK/fden1 after a product-source review. ";
-    apply_prompt += "Edit only src/lib/safeCatalogUrl.ts and AGENTS.md. Do not commit, format the repo, or edit source folders.\n\n";
-    apply_prompt += "Read src/lib/safeCatalogUrl.ts. For each host_suffixes entry below, append a missing https host suffix to ALLOWED_HOST_SUFFIXES. ";
+    apply_prompt += "Edit only src/lib/safe-catalog-url.ts and AGENTS.md. Do not commit, format the repo, or edit source folders.\n\n";
+    apply_prompt += "Read src/lib/safe-catalog-url.ts. For each host_suffixes entry below, append a missing https host suffix to ALLOWED_HOST_SUFFIXES. ";
     apply_prompt += "A suffix is a host such as `example.com`, not a URL and not a path. Skip a suffix that is already covered. ";
     apply_prompt += "CSP img-src is derived from that list, so add only hosts whose images or detail pages the sources actually requested.\n\n";
     apply_prompt += "Read AGENTS.md. For each non-empty agents_md_note, replace only the existing bullet whose bold label is that source id. ";
@@ -313,9 +313,9 @@ if compact.len() > 0 {
 phase("Check");
 let check_prompt = "";
 check_prompt += "Read-only scope check in /home/oskar/WORK/fden1. Use run_terminal_command for `git status --short` and `git diff --name-only`. Do not edit files.\n";
-check_prompt += "Allowed dirty paths are AGENTS.md, src/lib/safeCatalogUrl.ts, and files under these directories:\n";
+check_prompt += "Allowed dirty paths are AGENTS.md, src/lib/safe-catalog-url.ts, and files under these directories:\n";
 for source_id in review_ids {
-    check_prompt += "- src/lib/product_sources/" + source_id + "/\n";
+    check_prompt += "- src/lib/product-sources/" + source_id + "/\n";
 }
 check_prompt += "\nPut every other dirty path in out_of_scope. ";
 check_prompt += "notes is one sentence. An empty out_of_scope array is valid when every dirty path is allowed, including a clean tree.";

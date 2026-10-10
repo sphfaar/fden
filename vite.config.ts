@@ -3,7 +3,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
-import { CATALOG_CSP_HOSTS } from './src/lib/safeCatalogUrl.ts';
+import { CATALOG_CSP_HOSTS } from './src/lib/safe-catalog-url.ts';
 
 export default defineConfig({
 	plugins: [

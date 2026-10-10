@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
-import { sourcesDescriptors, sourcesGetters } from '#lib/product_sources/index.js';
+import { sourcesDescriptors, sourcesGetters } from '#lib/product-sources/index.js';
 import type { Actions } from './$types';
 
 // name should be sourceID but this is also the cookie type

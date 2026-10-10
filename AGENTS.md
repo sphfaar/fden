@@ -24,9 +24,9 @@ After completing the code, ask the user if they want a playground link. Only cal
 
 ## Product sources
 
-Use this section when adding a catalog, or when a catalog's JSON API or HTML page changed and products or metadata come back empty or wrong. Types live in `src/app.d.ts` as `ProductsData` and `Metadata`. Each source returns `Promise<ProductsData>` from `getProducts` / `getNextProducts` (`src/lib/product_sources/types.d.ts`).
+Use this section when adding a catalog, or when a catalog's JSON API or HTML page changed and products or metadata come back empty or wrong. Types live in `src/app.d.ts` as `ProductsData` and `Metadata`. Each source returns `Promise<ProductsData>` from `getProducts` / `getNextProducts` (`src/lib/product-sources/types.d.ts`).
 
-Search is GET `/?q=`. Each checked source then POSTs `/api/getNewProducts` with `{ sourceID, code, maxItems }`. Load-more POSTs `/api/getNextProducts` with the previous `meta`. The route passes `meta.page` (the page already loaded). `getNextProducts` must request `page + 1`. Returning `undefined` makes that route respond 500. Codes match `/^[\w.\-/]{3,32}$/`. `maxItems` is an integer from 1 to 1000. Test with query `1111`. MANN is the reliable JSON control.
+Search is GET `/?q=`. Each checked source then POSTs `/api/get-new-products` with `{ sourceID, code, maxItems }`. Load-more POSTs `/api/get-next-products` with the previous `meta`. The route passes `meta.page` (the page already loaded). `getNextProducts` must request `page + 1`. Returning `undefined` makes that route respond 500. Codes match `/^[\w.\-/]{3,32}$/`. `maxItems` is an integer from 1 to 1000. Test with query `1111`. MANN is the reliable JSON control.
 
 When you add or update a source, map every `Product` property in `src/app.d.ts` that the response can support. When you finish, report the origin, the queries, and the first products of page 1 and of page 2, as in **Report when finished**. The user reviews those products and will request changes when a mapping is wrong.
 
@@ -41,7 +41,7 @@ Prefer a JSON, GraphQL, or XHR body. Use HTML only when the rows exist only in a
 5. Build `ProductsData` by hand only when the shared axios client is not enough (Baldwin's cookie jar and retries).
 6. `scrapingType` on the source card is the UI label: `'JSON API'` or `'HTML parser'`. Filtration Group is `'HTML parser'` because the rows are parsed from HTML. Baldwin is `'JSON API'` and does not call the JSON helper.
 
-Both helpers live in `src/lib/product_sources/getJsonToProductsData.server.ts` and `getHtmlToProductsData.server.ts`. They use the shared axios client (`src/lib/product_sources/axios.server.ts`, `cache: 'no-store'`). Spread `headers` from `src/lib/product_sources/constants.ts` and add the catalog's own headers. A thrown error goes through `failSourceRequest` (`src/lib/product_sources/sourceError.server.ts`): the real error is logged and the client receives HTTP 500 `'Source request failed'`. Some sources catch that and return a 500 `ProductsData` instead.
+Both helpers live in `src/lib/product-sources/get-json-to-products-data.server.ts` and `get-html-to-products-data.server.ts`. They use the shared axios client (`src/lib/product-sources/axios.server.ts`, `cache: 'no-store'`). Spread `headers` from `src/lib/product-sources/constants.ts` and add the catalog's own headers. A thrown error goes through `failSourceRequest` (`src/lib/product-sources/source-error.server.ts`): the real error is logged and the client receives HTTP 500 `'Source request failed'`. Some sources catch that and return a 500 `ProductsData` instead.
 
 On HTTP status 400 or above, both helpers skip parsing and return `{ meta: { status, currentItemsDisplayed: 0, page: 0 }, products: [] }`. Fix the request before changing selectors when the status is 400 or above.
 
@@ -50,16 +50,16 @@ On HTTP status 400 or above, both helpers skip parsing and return `{ meta: { sta
 The helpers write `meta` after a successful parse:
 
 - `status` — axios status.
-- `currentItemsDisplayed` — `products.length` for this response. `mergeNextPage` in `src/lib/queryCache.svelte.ts` adds this across pages.
+- `currentItemsDisplayed` — `products.length` for this response. `mergeNextPage` in `src/lib/query-cache.svelte.ts` adds this across pages.
 - `page` — the page argument. The JSON helper uses `page ?? 1`. The HTML helper defaults the parameter to `1`. Error payloads use `0`.
-- `totalItems` — the source's `totalItems` function, or omitted. Use a number when the catalog states an exact count. Use a string such as `"36+"` when only a lower bound is known. `/api/getNextProducts` skips the numeric "already past the total" check when `totalItems` is a string.
+- `totalItems` — the source's `totalItems` function, or omitted. Use a number when the catalog states an exact count. Use a string such as `"36+"` when only a lower bound is known. `/api/get-next-products` skips the numeric "already past the total" check when `totalItems` is a string.
 - `pages` — the source's `nPages` function, or omitted. Load-more stops when the loaded `page` is greater than or equal to `pages`.
 - `maxItemsPagination` — JSON: the `pagination` number or function. HTML: the `pagination` argument. Omit it when the catalog has a single response.
 - `performanceTimings.proxyToSource` — milliseconds around `axios.request`, set when the route passes `showPerfReqProxyToSource: true`. Both product routes do. Hand-built sources should set the same field when they time the upstream call.
 
 `performanceTimings.clientToProxy` is on the type and nothing assigns it. Leave it unset.
 
-`/api/getNextProducts` reads `meta.page`, `meta.pages`, `meta.totalItems`, and `meta.currentItemsDisplayed`. A wrong `pages` or `totalItems` stops load-more early or lets it run forever. `asProductsData` accepts a payload when `meta` is an object, `products` is an array, and `meta.status` and `meta.page` are numbers.
+`/api/get-next-products` reads `meta.page`, `meta.pages`, `meta.totalItems`, and `meta.currentItemsDisplayed`. A wrong `pages` or `totalItems` stops load-more early or lets it run forever. `asProductsData` accepts a payload when `meta` is an object, `products` is an array, and `meta.status` and `meta.page` are numbers.
 
 Required `Metadata`: `status`, `currentItemsDisplayed`, `page`. Optional: `totalItems?: number | string`, `maxItemsPagination?: number`, `pages?: number`, `performanceTimings?: { proxyToSource?: number; clientToProxy?: number }`.
 
@@ -69,7 +69,7 @@ Required `ProductsData`: `meta`, `products`.
 
 `rowsIterator` (or the hand-built loop, or the remote service) creates every `Product`. The helpers do not rename fields. The table copies `manufacturer_code` to Manufacturer Code, `source_reference_code` to Cross Code, and `manufacturer` to Manufacturer Name, plus `detailsUrl`, `thumbnails`, and `cachedAt`. Description, category, dimensions, specs, and packaging are stored on `Product` and in the cache. The table does not render them yet. Map them anyway.
 
-On every source you add or update, read one live response and `ResponseSchema.d.ts`, then set every `Product` property that response can fill. The per-source "unmapped" notes below are the current gaps. Fill a gap when the value's meaning is clear. Omit a property only when the source has no value for it, and list those omitted keys in the finish report. Do not invent a number or a label. Leave a single unlabeled dimension string unparsed. Leave `cachedAt` unset. `stampProducts` adds it when the browser cache stores the page.
+On every source you add or update, read one live response and `response-schema.d.ts`, then set every `Product` property that response can fill. The per-source "unmapped" notes below are the current gaps. Fill a gap when the value's meaning is clear. Omit a property only when the source has no value for it, and list those omitted keys in the finish report. Do not invent a number or a label. Leave a single unlabeled dimension string unparsed. Leave `cachedAt` unset. `stampProducts` adds it when the browser cache stores the page.
 
 Required: `manufacturer`, `manufacturer_code` (the searched part as that catalog prints it), `source_reference_code` (that catalog's equivalent).
 
@@ -81,22 +81,22 @@ Optional groups:
 - `specs`: `mediaType` (filter material), `efficiency` (filtration grade), `flowDirection`.
 - `packaging`: include it only when `width`, `length`, and `height` are all numbers.
 
-Run every details URL and thumbnail through `catalogHttpsUrl(value, base)` in `src/lib/safeCatalogUrl.ts`. Add a new https host suffix to `ALLOWED_HOST_SUFFIXES` before using it. CSP `img-src` is derived from that list. Relative URLs need the catalog origin as `base`.
+Run every details URL and thumbnail through `catalogHttpsUrl(value, base)` in `src/lib/safe-catalog-url.ts`. Add a new https host suffix to `ALLOWED_HOST_SUFFIXES` before using it. CSP `img-src` is derived from that list. Relative URLs need the catalog origin as `base`.
 
 ### Add or repair a source
 
-Files: `src/lib/product_sources/<sourceID>/index.ts` (`descriptors` and `getters`), `getData.server.ts`, logo or banner, and `ResponseSchema.d.ts` for a JSON body. Register both exports in `src/lib/product_sources/index.ts`. `sourceID` must match the `sourcesGetters` key. `isLoggedIn: undefined` means public. A boolean means the card shows `SrcSessionForm`. FBN uses `false` until login. The session cookie name ends in `SessionToken`. `src/hooks.server.ts` copies it into `locals.srcSessions`, and the product routes pass `opts.sessionToken`.
+Files: `src/lib/product-sources/<sourceID>/index.ts` (`descriptors` and `getters`), `get-data.server.ts`, logo or banner, and `response-schema.d.ts` for a JSON body. Register both exports in `src/lib/product-sources/index.ts`. `sourceID` must match the `sourcesGetters` key. `isLoggedIn: undefined` means public. A boolean means the card shows `SrcSessionForm`. FBN uses `false` until login. The session cookie name ends in `SessionToken`. `src/hooks.server.ts` copies it into `locals.srcSessions`, and the product routes pass `opts.sessionToken`.
 
 When a source that used to work returns no rows:
 
-1. Read that folder's `getData.server.ts` and `ResponseSchema.d.ts`.
+1. Read that folder's `get-data.server.ts` and `response-schema.d.ts`.
 2. Replay the same method, URL, params, and headers with code `1111`.
 3. Status 400 or above: the helper never calls `rowsIterator`. Fix headers, cookies, or body.
-4. Status 200 with empty products or a thrown read of `undefined`: the JSON path or CSS selector moved. Save one response, update `ResponseSchema.d.ts`, then update `rowsIterator` or `tableRows`. Keep the three required strings, and set every other `Product` property the new body can fill.
+4. Status 200 with empty products or a thrown read of `undefined`: the JSON path or CSS selector moved. Save one response, update `response-schema.d.ts`, then update `rowsIterator` or `tableRows`. Keep the three required strings, and set every other `Product` property the new body can fill.
 5. Rows look right but load-more is wrong: fix `totalItems`, `pages`, and `maxItemsPagination` using the per-source notes below.
 6. Details links or thumbnails disappear while the codes are present: `catalogHttpsUrl` rejected the host. Add the suffix.
 
-Parker `api-key` and Baldwin `ocpApimSubscriptionKey` are public vendor keys already in those `getData.server.ts` files. Leave them unless the user asks to change them.
+Parker `api-key` and Baldwin `ocpApimSubscriptionKey` are public vendor keys already in those `get-data.server.ts` files. Leave them unless the user asks to change them.
 
 ### Report when finished
 
@@ -108,7 +108,7 @@ End every source add or update with this report. The user reviews the products a
 - **Page 2.** When `getNextProducts` returns a second page (`pages` greater than 1, or a second response with `products.length` greater than 0), the same meta fields and the first 8 `Product` objects of that page. When the source has no second page, say so.
 - **Omitted properties.** The `Product` keys you left unset because this source has no value for them.
 
-Call `getProducts` for page 1 and `getNextProducts` for page 2 (it requests `page + 1`). A browser check against `/api/getNewProducts` and `/api/getNextProducts` is the same contract.
+Call `getProducts` for page 1 and `getNextProducts` for page 2 (it requests `page + 1`). A browser check against `/api/get-new-products` and `/api/get-next-products` is the same contract.
 
 ### JSON sources (`getJsonToProducts`)
 
@@ -154,7 +154,7 @@ Call `getProducts` for page 1 and `getNextProducts` for page 2 (it requests `pag
 
 **ufihyd** — `GET https://crossreference.ufihyd.com/?s=<code>&paged=<page>`. WordPress search, 10 `codice` rows per page; the template prints no total. Rows: elements with class `codice`. Product: `td[data-title="Manufacturer"] span` → `manufacturer`, `.manufacturer-code span` → `manufacturer_code`, `.ufi-code a span` → `source_reference_code`, `detailsUrl` from that anchor via `catalogHttpsUrl`. A page shorter than 10 is the last page (`pages` = that page, `totalItems` = `(page - 1) * 10 + rows`). A full page `HEAD`s `paged + 1`: 404 sets that exact total, 200 sets `totalItems` to `"<page * 10>+"` and leaves `pages` unset. `maxItemsPagination` is 10. Next page: `page + 1`. After the page, each distinct product URL is parsed with linkedom. Millimeter `External diameter`, `Internal diameter`, and `Height` fill `dimensions`. An internal-diameter port thread (for example `1''12 UNF`) is `dimensions.threadSize`. `Filter media` → `specs.mediaType`. `Filtration grade` → `specs.efficiency`. `Box (width x length x height)` → `packaging` when all three are millimeters. Gallery images on `crossreference.ufihyd.com` → `thumbnails`, skipping `not-available.jpg`. A details failure leaves the search-row product. `wp-json/wp/v2/codice` has no UFI code or dimensions (`acf` is empty), so the rows stay HTML. Also unmapped: Seal, Bypass, weight, and the product page's cross-reference list. No description, category, or flow direction.
 
-**fbn** — Login required (`isLoggedIn: false`). Search is `GET https://www.fbn.it/Apps/WebObjects/FBN.woa/1/wa/CRAction/search` with `batchIndex` (page), `originale`, empty `marca` and `fbn`. Send cookie `wosid=<sessionToken>; woinst=1` and the PJAX headers in `getData.server.ts`. A missing or malformed token is HTTP 400. Call `https://www.fbn.it` directly. Login is a separate multipart POST and stores httpOnly cookie `fbnSessionToken`. Rows: `.table > tbody > tr` (about 9). Product: `td` columns 1, 2, and 3. No `detailsUrl`. Meta: `pages` is the last `[name=batchIndex] option` value. `maxItemsPagination` is `9`. `totalItems` is `"< (pages - 1) * 9 >+"` until the last page, then `pages * rowsOnThisPage` (a short last page undercounts). Next page: `page + 1`, forwarding `opts`.
+**fbn** — Login required (`isLoggedIn: false`). Search is `GET https://www.fbn.it/Apps/WebObjects/FBN.woa/1/wa/CRAction/search` with `batchIndex` (page), `originale`, empty `marca` and `fbn`. Send cookie `wosid=<sessionToken>; woinst=1` and the PJAX headers in `get-data.server.ts`. A missing or malformed token is HTTP 400. Call `https://www.fbn.it` directly. Login is a separate multipart POST and stores httpOnly cookie `fbnSessionToken`. Rows: `.table > tbody > tr` (about 9). Product: `td` columns 1, 2, and 3. No `detailsUrl`. Meta: `pages` is the last `[name=batchIndex] option` value. `maxItemsPagination` is `9`. `totalItems` is `"< (pages - 1) * 9 >+"` until the last page, then `pages * rowsOnThisPage` (a short last page undercounts). Next page: `page + 1`, forwarding `opts`.
 
 ### Sources that build `ProductsData` themselves
 

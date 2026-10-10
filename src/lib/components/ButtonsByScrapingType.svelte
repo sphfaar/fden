@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import { scrapingTypeColors } from '#lib/scarpingTypes.js';
 
 	let {
@@ -45,6 +48,27 @@
 			// ['Automated browser', getNEnabledSourceCardsByType(enabledSourceCards, 'Automated browser')]
 		])
 	);
+
+	// Shallow replace keeps the loaded rows. page.url stays put, so the card list is not rebuilt from the previous query.
+	function syncDisabledSourcesInSearchParams() {
+		const current = page.shallow?.url ?? page.url;
+		const url = new URL(current.href);
+		for (const card of enabledSourceCards) {
+			const sourceID = card.sourceDescriptors.sourceID;
+			if (card.isChecked && card.sourceDescriptors.isLoggedIn !== false) {
+				url.searchParams.set(sourceID, '1');
+			} else {
+				url.searchParams.delete(sourceID);
+			}
+		}
+		const href = `${url.pathname}${url.search}${url.hash}`;
+		if (href === `${current.pathname}${current.search}${current.hash}`) return;
+		void goto(resolve(href as `/?${string}`), { shallow: true, replace: true }).catch(
+			(error) => {
+				console.error(error);
+			}
+		);
+	}
 </script>
 
 {#snippet scrapingTypeButtons(scrapingType: SourceDescriptors['scrapingType'])}
@@ -59,21 +83,23 @@
 		style: undefined
 	}}
 	<button
+		type="button"
 		class="relative min-h-7 w-full max-w-52 min-w-fit cursor-pointer overflow-hidden border font-semibold capitalize shadow-[-5px_0_0_-3px,5px_0_0_-3px] shadow-black {style?.border} bg-transparent {style?.hoverBg} transition-colors hover:text-neutral-50"
 		onclick={() => {
 			const { nEnabled, maxEnabled } = nEnabledSourceCardsByType.get(scrapingType) ?? {
 				nEnabled: NaN,
 				maxEnabled: NaN
 			};
-			enabledSourceCards.forEach((enabledSC) => {
+			const enable = nEnabled < maxEnabled;
+			for (const enabledSC of enabledSourceCards) {
 				if (
 					enabledSC.sourceDescriptors.scrapingType === scrapingType &&
 					enabledSC.sourceDescriptors.isLoggedIn !== false
 				) {
-					if (nEnabled < maxEnabled) enabledSC.isChecked = true;
-					else enabledSC.isChecked = false;
+					enabledSC.isChecked = enable;
 				}
-			});
+			}
+			syncDisabledSourcesInSearchParams();
 		}}
 		onmouseenter={() => {
 			srcConsensusDescription = {
@@ -138,17 +164,18 @@
 		class="-2px_0_0_0,2px_0_0_0] min-h-7 w-2/5 max-w-16 min-w-fit border border-error bg-black px-1 text-error shadow-[-5px_0_0_-3px,5px_0_0_-3px] shadow-black transition-colors hover:cursor-pointer hover:text-primary"
 		type="button"
 		onclick={() => {
-			enabledSourceCards.forEach((sc) => (sc.isChecked = false));
+			for (const sc of enabledSourceCards) sc.isChecked = false;
+			syncDisabledSourcesInSearchParams();
 		}}>Reset</button
 	>
 	<button
+		type="button"
 		class="relative min-h-7 w-3/5 max-w-32 min-w-fit overflow-hidden border border-white text-neutral-300 shadow-[-5px_0_0_-3px,5px_0_0_-3px] shadow-black transition-colors hover:text-neutral-50"
 		onclick={() => {
-			enabledSourceCards.forEach((sc) =>
-				sc.sourceDescriptors.isLoggedIn !== false
-					? (sc.isChecked = true)
-					: (sc.isChecked = false)
-			);
+			for (const sc of enabledSourceCards) {
+				sc.isChecked = sc.sourceDescriptors.isLoggedIn !== false;
+			}
+			syncDisabledSourcesInSearchParams();
 		}}
 		onmouseenter={() =>
 			enabledSourceCards?.forEach((sc) =>

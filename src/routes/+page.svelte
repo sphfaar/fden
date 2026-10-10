@@ -614,21 +614,55 @@
 
 	$effect.pre(() => {
 		const descs = data.newSrcsDescriptors;
-		const urlCode = page.url.searchParams.get('q') ?? '';
+		// Read both. A shallow source-button update must not leave this effect on the previous page.url,
+		// or the next descriptor refresh checks every source that was just removed.
+		const pageUrl = page.url;
+		const shallowUrl = page.shallow?.url;
+		const visibleUrl = shallowUrl ?? pageUrl;
+		const urlCode = visibleUrl.searchParams.get('q') ?? '';
+		const checkedFromUrl = descs.map(
+			(srcDesc) =>
+				visibleUrl.searchParams.get(srcDesc.sourceID) === '1' && srcDesc.isLoggedIn !== false
+		);
 		untrack(() => {
 			if (urlCode && urlCode !== code) code = urlCode;
 		});
 		const currentCode = untrack(() => (urlCode && codeRgx.test(urlCode) ? urlCode : code));
-		enabledSourceCards = descs.map((srcDesc) => {
-			const isDataSSRPreloaded: boolean =
-				(page.url.searchParams.get(srcDesc?.sourceID ?? '') === '1' ? true : false) &&
-				srcDesc.isLoggedIn !== false; //is Data loaded in SSR from URL params
+		if (shallowUrl) {
+			untrack(() => {
+				const next: EnabledSourceCard[] = [];
+				for (let i = 0; i < descs.length; i++) {
+					const srcDesc = descs[i];
+					const isChecked = checkedFromUrl[i];
+					const existing = enabledSourceCards.find(
+						(card) => card.sourceDescriptors.sourceID === srcDesc.sourceID
+					);
+					if (existing) {
+						existing.sourceDescriptors = srcDesc;
+						existing.isChecked = isChecked;
+						next.push(existing);
+					} else {
+						next.push({
+							sourceDescriptors: srcDesc,
+							isChecked,
+							isDataLoaded: isChecked,
+							isMouseOverScrapingType: false,
+							lastCodeQuery: isChecked ? currentCode : undefined
+						});
+					}
+				}
+				enabledSourceCards = next;
+			});
+			return;
+		}
+		enabledSourceCards = descs.map((srcDesc, i) => {
+			const isChecked = checkedFromUrl[i];
 			return {
 				sourceDescriptors: srcDesc,
-				isChecked: isDataSSRPreloaded,
-				isDataLoaded: isDataSSRPreloaded,
+				isChecked,
+				isDataLoaded: isChecked,
 				isMouseOverScrapingType: false,
-				lastCodeQuery: isDataSSRPreloaded ? currentCode : undefined
+				lastCodeQuery: isChecked ? currentCode : undefined
 			};
 		});
 	});
@@ -798,9 +832,12 @@
 						{loadInitialProducts}
 						{loadNextProducts}
 						{refreshCachedQuery}
-						bind:isChecked={disabledSC.isChecked}
+						isChecked={disabledSC.isChecked}
 						bind:isDataLoaded={disabledSC.isDataLoaded}
 						lastCodeQuery={disabledSC.lastCodeQuery}
+						onToggle={() => {
+							disabledSC.isChecked = !disabledSC.isChecked;
+						}}
 					/>
 					<span
 						class="h-ps {scrapingTypeColors.get(
@@ -845,9 +882,12 @@
 						{loadInitialProducts}
 						{loadNextProducts}
 						{refreshCachedQuery}
-						bind:isChecked={enabledSC.isChecked}
+						isChecked={enabledSC.isChecked}
 						bind:isDataLoaded={enabledSC.isDataLoaded}
 						lastCodeQuery={enabledSC.lastCodeQuery}
+						onToggle={() => {
+							enabledSC.isChecked = !enabledSC.isChecked;
+						}}
 					/>
 				</div>
 			{/each}

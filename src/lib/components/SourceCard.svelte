@@ -41,9 +41,10 @@
 		loadInitialProducts,
 		loadNextProducts,
 		refreshCachedQuery,
-		isChecked = $bindable(),
+		isChecked,
 		isDataLoaded = $bindable(),
-		lastCodeQuery
+		lastCodeQuery,
+		onToggle
 	}: {
 		sourceDescriptors: SourceDescriptors;
 		metaDataPromise: Promise<Metadata> | undefined;
@@ -53,6 +54,7 @@
 		isChecked: boolean;
 		isDataLoaded: boolean;
 		lastCodeQuery: string | undefined;
+		onToggle: () => void;
 	} = $props();
 
 	let isLoadingNextProducts = $state(false);
@@ -144,7 +146,7 @@
 	async function handleSCClick(e: Event) {
 		e.preventDefault();
 		if (sourceDescriptors.isLoggedIn === false) return;
-		isChecked = !isChecked;
+		onToggle();
 		if (isDataLoaded) {
 			return;
 		} else {

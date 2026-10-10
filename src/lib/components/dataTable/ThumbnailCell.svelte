@@ -41,7 +41,7 @@
 		<div class={['relative shrink-0', multiple && 'mx-5']}>
 			<button
 				type="button"
-				class="block w-max shrink-0 cursor-pointer border border-primary/30 bg-white p-0.5 leading-none hover:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden"
+				class="relative block w-max shrink-0 cursor-pointer border border-primary/30 bg-white p-0.5 leading-none hover:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden"
 				aria-label={multiple
 					? `Expand thumbnail ${shown + 1} of ${images.length}`
 					: 'Expand thumbnail'}
@@ -56,17 +56,13 @@
 					height="32"
 					class="block size-8 max-w-none shrink-0 object-contain"
 				/>
+				{#if multiple}
+					<span
+						class="pointer-events-none absolute inset-x-px bottom-px text-right text-[10px] leading-tight tabular-nums bg-blend-color"
+						aria-hidden="true">{shown + 1}/{images.length}</span
+					>
+				{/if}
 			</button>
-			{#if multiple}
-				<button
-					type="button"
-					tabindex={-1}
-					aria-hidden="true"
-					class="absolute inset-x-px bottom-px cursor-default text-right text-[10px] leading-tight tabular-nums bg-blend-color focus:outline-hidden"
-				>
-					{shown + 1}/{images.length}
-				</button>
-			{/if}
 		</div>
 		{#if multiple}
 			<button

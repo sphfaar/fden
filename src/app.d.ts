@@ -66,9 +66,12 @@ declare global {
 		manufacturer_code: string;
 		source_reference_code: string;
 		dimensions?: {
-			externalDiameter?: number;
-			internalDiameter?: number;
+			externalDiameter?: number; // AKA outside diameter
+			internalDiameter?: number; // AKA inside diameter
 			height?: number;
+			threadSize?: string; // AKA thread size
+			gasketExternalDiameter?: number; // AKA gasket outside diameter
+			gasketInternalDiameter?: number; // AKA gasket inside diameter
 		};
 		specs?: {
 			mediaType?: string; // material of the filter
@@ -99,6 +102,12 @@ declare global {
 		thumbnails?: string[];
 		detailsUrl?: string;
 		cachedAt?: string;
+		category?: string;
+		description?: string;
+		longDescription?: string;
+		dimensions?: Product['dimensions'];
+		specs?: Product['specs'];
+		packaging?: Product['packaging'];
 	}
 }
 

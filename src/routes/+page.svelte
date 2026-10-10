@@ -102,7 +102,13 @@
 					manufacturerName: product.manufacturer,
 					detailsUrl: product.detailsUrl,
 					thumbnails: product.thumbnails,
-					cachedAt: product.cachedAt
+					cachedAt: product.cachedAt,
+					category: product.category,
+					description: product.description,
+					longDescription: product.longDescription,
+					dimensions: product.dimensions,
+					specs: product.specs,
+					packaging: product.packaging
 				});
 			}
 		}

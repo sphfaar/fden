@@ -1,17 +1,20 @@
-export default interface Response1Schema {
-	// nonFoundTerms: any[];
-	products: Product[];
+export default interface FleetguardPartsResponse {
+	readonly returnValue: string;
+	readonly cacheable: boolean;
 }
 
-interface Product {
-	attributes: Attributes;
-	Id: string;
-	Name: string;
-	CrossRef__c: string;
-	CNPR_ShortDescRT__c: string;
+export interface FleetguardPartsPayload {
+	readonly nonFoundTerms: readonly unknown[];
+	readonly products: readonly FleetguardPart[];
 }
 
-interface Attributes {
-	type: Type;
-	url: string;
+export interface FleetguardPart {
+	readonly attributes: {
+		readonly type: string;
+		readonly url: string;
+	};
+	readonly Id: string;
+	readonly Name: string;
+	readonly CrossRef__c: string;
+	readonly CNPR_ShortDescRT__c?: string;
 }

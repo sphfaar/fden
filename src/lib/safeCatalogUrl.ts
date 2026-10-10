@@ -15,7 +15,10 @@ const ALLOWED_HOST_SUFFIXES = [
 	'hydac.com',
 	'filtrationgroup.com',
 	'argo-hytos.com',
-	'voith-webshop-pim-public-prod.s3.eu-central-1.amazonaws.com'
+	'voith-webshop-pim-public-prod.s3.eu-central-1.amazonaws.com',
+	'fleetguard.com',
+	'atmus.widen.net',
+	'cf-store.widencdn.net'
 ] as const;
 
 /** Apex and wildcard host sources for CSP `img-src`, matching {@link catalogHttpsUrl}. */

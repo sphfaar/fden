@@ -49,7 +49,8 @@
 	import Funnel from '@lucide/svelte/icons/funnel';
 	import GripVertical from '@lucide/svelte/icons/grip-vertical';
 	import { catalogHttpsUrl, catalogHttpsUrls } from '#lib/safeCatalogUrl.js';
-	import { onMount } from 'svelte';
+	import RowDetails from './RowDetails.svelte';
+	import { onMount, tick } from 'svelte';
 	import { createTable, FlexRender, renderSnippet, type Updater } from '@tanstack/svelte-table';
 	import {
 		COLUMN_ORDER_KEY,
@@ -236,7 +237,8 @@
 		onColumnOrderChange: setColumnOrder,
 		globalFilterFn: productCodeGlobalFilter,
 		getColumnCanGlobalFilter: (column) => column.id === 'manufacturerCode',
-		enableMultiSort: false
+		enableMultiSort: false,
+		getRowId: (_row, index) => rowKeys[index] ?? String(index)
 	});
 
 	const headerClass =
@@ -246,6 +248,23 @@
 		'flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-1.5 text-left text-sm whitespace-nowrap hover:bg-primary/20';
 
 	let exportMenuOpen = $state(false);
+	// One entry per open row. Absent keys stay independent, so opening one row
+	// does not refresh the other hundreds.
+	let expandedRows = $state<Record<string, true>>({});
+	let lightboxUrl = $state<string | undefined>(undefined);
+	let lightbox: HTMLDialogElement | undefined;
+
+	const rowKeys = $derived.by(() => {
+		const keys: string[] = [];
+		const seen: Record<string, number> = {};
+		for (const product of products) {
+			const base = `${product.source.name}\u001f${product.manufacturerCode}\u001f${product.crossCode}\u001f${product.manufacturerName}`;
+			const count = seen[base] ?? 0;
+			seen[base] = count + 1;
+			keys.push(count === 0 ? base : `${base}\u001f${count}`);
+		}
+		return keys;
+	});
 
 	function visibleProducts(): ProductOfTable[] {
 		return table.getRowModel().rows.map((row) => row.original);
@@ -269,6 +288,97 @@
 
 	function closeExportMenuOnEscape(event: KeyboardEvent) {
 		if (event.key === 'Escape') exportMenuOpen = false;
+	}
+
+	function toggleRow(id: string) {
+		if (expandedRows[id]) delete expandedRows[id];
+		else expandedRows[id] = true;
+	}
+
+	function textCaret(x: number, y: number): { node: Node; offset: number } | undefined {
+		const withPosition = document as Document & {
+			caretPositionFromPoint?(x: number, y: number): { offsetNode: Node; offset: number } | null;
+		};
+		const position = withPosition.caretPositionFromPoint?.(x, y);
+		if (position) return { node: position.offsetNode, offset: position.offset };
+		const range = document.caretRangeFromPoint?.(x, y);
+		if (!range) return undefined;
+		return { node: range.startContainer, offset: range.startOffset };
+	}
+
+	// True only when the pointer is inside a glyph, so padding and empty cells still toggle.
+	function clickHitsText(event: MouseEvent): boolean {
+		const caret = textCaret(event.clientX, event.clientY);
+		if (!caret || caret.node.nodeType !== Node.TEXT_NODE) return false;
+		const text = caret.node.textContent ?? '';
+		if (text.trim().length === 0) return false;
+		const index = Math.min(caret.offset, text.length - 1);
+		if (index < 0) return false;
+		const probe = document.createRange();
+		try {
+			probe.setStart(caret.node, index);
+			probe.setEnd(caret.node, index + 1);
+		} catch {
+			return false;
+		}
+		const rect = probe.getBoundingClientRect();
+		if (rect.width === 0 && rect.height === 0) return false;
+		return (
+			event.clientX >= rect.left &&
+			event.clientX <= rect.right &&
+			event.clientY >= rect.top &&
+			event.clientY <= rect.bottom
+		);
+	}
+
+	function onBodyClick(event: MouseEvent) {
+		if (event.shiftKey || event.metaKey || event.ctrlKey || event.altKey) return;
+		const selection = document.getSelection();
+		if (selection && !selection.isCollapsed && selection.toString().trim().length > 0) return;
+		const target = event.target;
+		if (!(target instanceof Element)) return;
+		if (target.closest('a, button, input, textarea, select, label')) return;
+		if (clickHitsText(event)) return;
+		const id = target.closest('tr[data-row-id]')?.getAttribute('data-row-id');
+		if (id) toggleRow(id);
+	}
+
+	function rowClicks(node: HTMLTableSectionElement) {
+		node.addEventListener('click', onBodyClick);
+		return () => node.removeEventListener('click', onBodyClick);
+	}
+
+	async function openThumbnail(url: string) {
+		lightboxUrl = url;
+		await tick();
+		if (lightbox && !lightbox.open) lightbox.showModal();
+	}
+
+	function onLightboxBackdrop(event: MouseEvent) {
+		const dialog = event.currentTarget;
+		if (!(dialog instanceof HTMLDialogElement)) return;
+		const rect = dialog.getBoundingClientRect();
+		const inside =
+			event.clientX >= rect.left &&
+			event.clientX <= rect.right &&
+			event.clientY >= rect.top &&
+			event.clientY <= rect.bottom;
+		if (!inside) dialog.close();
+	}
+
+	function onLightboxClose() {
+		lightboxUrl = undefined;
+	}
+
+	function lightboxDialog(node: HTMLDialogElement) {
+		lightbox = node;
+		node.addEventListener('click', onLightboxBackdrop);
+		node.addEventListener('close', onLightboxClose);
+		return () => {
+			node.removeEventListener('click', onLightboxBackdrop);
+			node.removeEventListener('close', onLightboxClose);
+			if (lightbox === node) lightbox = undefined;
+		};
 	}
 </script>
 
@@ -530,11 +640,16 @@
 			</tr>
 		{/each}
 	</thead>
-	<tbody>
+	<tbody {@attach rowClicks}>
 		{#each table.getRowModel().rows as row (row.id)}
 			<tr
+				data-row-id={row.id}
+				aria-expanded={expandedRows[row.id] ? 'true' : 'false'}
 				class={[
-					row.getDisplayIndex() % 2 === 0 && 'bg-secondary/5',
+					expandedRows[row.id]
+						? 'bg-primary/10'
+						: row.getDisplayIndex() % 2 === 0 && 'bg-secondary/5',
+					!expandedRows[row.id] && 'hover:bg-primary/5',
 					'data-[state=selected]:bg-primary/10'
 				]}
 			>
@@ -553,6 +668,36 @@
 					</td>
 				{/each}
 			</tr>
+			{#if expandedRows[row.id]}
+				<tr data-row-id={row.id} class="bg-primary/10">
+					<td class="px-4 py-3" colspan={row.getAllCells().length}>
+						<RowDetails product={row.original} onOpenThumbnail={openThumbnail} />
+					</td>
+				</tr>
+			{/if}
 		{/each}
 	</tbody>
 </table>
+
+<dialog
+	class="m-auto w-fit max-w-[92vw] border border-primary/40 bg-background p-3 text-primary"
+	aria-label="Product thumbnail"
+	{@attach lightboxDialog}
+>
+	<div class="mb-2 flex justify-end">
+		<button
+			type="button"
+			class="cursor-pointer border border-primary/50 px-2 py-0.5 text-sm font-medium hover:bg-primary/80 hover:text-background"
+			onclick={(event) => event.currentTarget.closest('dialog')?.close()}
+		>
+			esc
+		</button>
+	</div>
+	{#if lightboxUrl}
+		<img
+			src={lightboxUrl}
+			alt="Product thumbnail"
+			class="max-h-[80vh] max-w-[88vw] object-contain"
+		/>
+	{/if}
+</dialog>

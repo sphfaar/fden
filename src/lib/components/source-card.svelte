@@ -177,6 +177,12 @@
 	async function initLoad() {
 		try {
 			metaData = (await metaDataPromise) ?? undefined;
+			// A resolved 4xx/5xx is the catalog's answer. A thrown request still uses the catch below.
+			if (metaData && metaData.status >= 400) {
+				errorMessage = metaData.status >= 500 ? 'failed' : 'rejected';
+			} else {
+				errorMessage = undefined;
+			}
 		} catch (error) {
 			if (
 				error &&

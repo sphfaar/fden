@@ -27,7 +27,11 @@ export async function getHtmlToProducts<T>(
 ): Promise<ProductsData> {
 	try {
 		const reqStart = config?.showPerfReqProxyToSource ? Date.now() : undefined;
-		const response = await axios.request(axiosReqConfig);
+		// Axios rejects non-2xx before this status check. Accept every status unless the source set its own check.
+		const response = await axios.request({
+			...axiosReqConfig,
+			validateStatus: axiosReqConfig.validateStatus ?? (() => true)
+		});
 		if (response.status >= 400) {
 			return {
 				meta: {

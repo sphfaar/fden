@@ -24,7 +24,9 @@ const ALLOWED_HOST_SUFFIXES = [
 	'faifiltri.it',
 	'filterinterchange.com',
 	'tecalliance.net',
-	'tecalliance.services'
+	'tecalliance.services',
+	'tecneco.com',
+	'tecneco.it'
 ] as const;
 
 /** Apex and wildcard host sources for CSP `img-src`, matching {@link catalogHttpsUrl}. */

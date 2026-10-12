@@ -28,6 +28,7 @@ import {
 	getters as mpfiltriusaGetters
 } from './mpfiltriusa';
 import { descriptors as argohytosDescriptors, getters as argohytosGetters } from './argohytos';
+import { descriptors as tecnecoDescriptors, getters as tecnecoGetters } from './tecneco';
 type Getter = {
 	getProducts: GetProducts;
 	getNextProducts: GetNextProducts;
@@ -60,7 +61,8 @@ export const sourcesDescriptors: SourceDescriptors[] = [
 	hengstDescriptors,
 	fbnDescriptors,
 	mpfiltriusaDescriptors,
-	argohytosDescriptors
+	argohytosDescriptors,
+	tecnecoDescriptors
 ];
 
 export const sourcesGetters: Record<string, Getter> = {
@@ -85,5 +87,6 @@ export const sourcesGetters: Record<string, Getter> = {
 	hengst: hengstGetters,
 	fbn: fbnGetters,
 	mpfiltriusa: mpfiltriusaGetters,
-	argohytos: argohytosGetters
+	argohytos: argohytosGetters,
+	tecneco: tecnecoGetters
 };

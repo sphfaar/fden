@@ -4,7 +4,7 @@ import banner from './banner.svg';
 export const descriptors: SourceDescriptors = {
 	sourceID: 'mann',
 	name: 'MANN',
-	banner: banner,
+	banner,
 	scrapingType: 'JSON API',
 	isLoggedIn: undefined
 };

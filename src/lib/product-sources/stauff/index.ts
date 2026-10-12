@@ -5,8 +5,8 @@ import banner from './banner.avif';
 export const descriptors: SourceDescriptors = {
 	sourceID: 'stauff',
 	name: 'STAUFF',
-	logo: logo,
-	banner: banner,
+	logo,
+	banner,
 	scrapingType: 'HTML parser',
 	isLoggedIn: undefined
 };

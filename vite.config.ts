@@ -21,10 +21,11 @@ export default defineConfig({
 					'font-src': ['self'],
 					'form-action': ['self'],
 					'frame-ancestors': ['none'],
-					'frame-src': ['none'],
+					// Turnstile renders its challenge in an iframe and loads api.js from this host.
+					'frame-src': ['https://challenges.cloudflare.com'],
 					'img-src': ['self', 'data:', ...CATALOG_CSP_HOSTS],
 					'object-src': ['none'],
-					'script-src': ['self'],
+					'script-src': ['self', 'https://challenges.cloudflare.com'],
 					'style-src': ['self'],
 					// `style:` bindings and the app.html wrapper cannot take a nonce.
 					'style-src-attr': ['unsafe-inline'],

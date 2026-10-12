@@ -3,7 +3,8 @@
 	import { onMount, onDestroy, tick, untrack } from 'svelte';
 	// import { browser } from '$app/env';
 	import { page } from '$app/state';
-	import { disableScrollHandling, afterNavigate } from '$app/navigation';
+	import { disableScrollHandling, afterNavigate, goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import {
 		asProductsData,
 		cachedPageFromProducts,
@@ -69,6 +70,8 @@
 
 	const codeRgx = /^[\w.\-/]{3,32}$/;
 	let code = $state(page.url.searchParams.get('q') ?? '');
+	// Last q seen on the visible URL. Source-card updates must not copy that q back over an edited field.
+	let appliedUrlQuery = page.url.searchParams.get('q') ?? '';
 	let isLoadingTable = $state(false);
 	let isLoadingMoreProductsOnTable = $state(false);
 	let searchEntries = $state.raw<SearchEntry[]>([]);
@@ -245,6 +248,8 @@
 		if (!codeRgx.test(query)) return;
 		const sourceDescs = sourceDescriptorsFor(sourceID);
 		if (!sourceDescs) return;
+		// Rows for this query are about to enter the table. q follows that, not the field while it is being typed.
+		if (isSourceCardChecked(sourceID)) syncSourceSearchParams(query);
 
 		const card = enabledSourceCards.find(
 			(source) => source.sourceDescriptors.sourceID === sourceID
@@ -441,6 +446,7 @@
 				cardNow.isDataLoaded = true;
 			}
 			setSourceProducts(sourceDescs, Promise.resolve(accumulated));
+			if (isSourceCardChecked(sourceID)) syncSourceSearchParams(query);
 		} catch (error) {
 			console.error(error);
 		} finally {
@@ -457,6 +463,51 @@
 				enabledSourceCards[i].isDataLoaded = false;
 			}
 		}
+	}
+
+	// Shallow replace. Checked sources are sourceId=1. q is written only for a query the table is loading.
+	function syncSourceSearchParams(query?: string) {
+		const current = page.shallow?.url ?? page.url;
+		const url = new URL(current.href);
+		if (query && codeRgx.test(query)) {
+			url.searchParams.set('q', query);
+			appliedUrlQuery = query;
+		}
+		for (const card of enabledSourceCards) {
+			const sourceID = card.sourceDescriptors.sourceID;
+			if (card.isChecked && card.sourceDescriptors.isLoggedIn !== false) {
+				url.searchParams.set(sourceID, '1');
+			} else {
+				url.searchParams.delete(sourceID);
+			}
+		}
+		const href = `${url.pathname}${url.search}${url.hash}`;
+		if (href === `${current.pathname}${current.search}${current.hash}`) return;
+		void goto(resolve(href as `/?${string}`), { shallow: true, replace: true }).catch(
+			(error) => {
+				console.error(error);
+			}
+		);
+	}
+
+	function toggleSourceCard(card: EnabledSourceCard) {
+		const wasLoaded = card.isDataLoaded;
+		card.isChecked = !card.isChecked;
+		const query = code.trim();
+		const selfWillSearch = !wasLoaded && card.isChecked && codeRgx.test(query);
+		const otherWillSearch =
+			!wasLoaded &&
+			codeRgx.test(query) &&
+			enabledSourceCards.some(
+				(other) =>
+					other !== card &&
+					other.isChecked &&
+					!other.isDataLoaded &&
+					other.lastCodeQuery !== query &&
+					other.sourceDescriptors.isLoggedIn !== false
+			);
+		// A following load writes q together with the source params. Skip this sync so it cannot land afterwards and keep the old q.
+		if (!selfWillSearch && !otherWillSearch) syncSourceSearchParams();
 	}
 
 	async function searchFromEntry(entry: SearchEntry) {
@@ -634,7 +685,8 @@
 				sourceDesc.isLoggedIn !== false
 		);
 		untrack(() => {
-			if (urlCode && urlCode !== code) code = urlCode;
+			if (urlCode && urlCode !== appliedUrlQuery) code = urlCode;
+			appliedUrlQuery = urlCode;
 		});
 		const currentCode = untrack(() => (urlCode && codeRgx.test(urlCode) ? urlCode : code));
 		if (shallowUrl) {
@@ -843,9 +895,7 @@
 						isChecked={disabledSC.isChecked}
 						bind:isDataLoaded={disabledSC.isDataLoaded}
 						lastCodeQuery={disabledSC.lastCodeQuery}
-						onToggle={() => {
-							disabledSC.isChecked = !disabledSC.isChecked;
-						}}
+						onToggle={() => toggleSourceCard(disabledSC)}
 					/>
 					<span
 						class="h-ps {scrapingTypeColors.get(
@@ -893,9 +943,7 @@
 						isChecked={enabledSC.isChecked}
 						bind:isDataLoaded={enabledSC.isDataLoaded}
 						lastCodeQuery={enabledSC.lastCodeQuery}
-						onToggle={() => {
-							enabledSC.isChecked = !enabledSC.isChecked;
-						}}
+						onToggle={() => toggleSourceCard(enabledSC)}
 					/>
 				</div>
 			{/each}

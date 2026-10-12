@@ -38,7 +38,6 @@ interface SiteverifyBody {
 }
 
 let hmacKeyCache: { secretKey: string; key: CryptoKey } | undefined;
-let isDevBypassWarned = false;
 
 function binding(name: string): string | undefined {
 	try {
@@ -75,17 +74,10 @@ export function readTurnstileKeys(): TurnstileKeys | undefined {
 }
 
 /**
-Local `vite dev` stays usable until keys exist. Production and preview stay closed.
+`vite dev` never challenges. Preview and production still do.
 */
 export function isTurnstileDevBypass(): boolean {
-	if (!dev || readTurnstileKeys()) return false;
-	if (!isDevBypassWarned) {
-		isDevBypassWarned = true;
-		console.warn(
-			'Turnstile keys are unset, so the human check is off for this local dev server. Add TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY to .dev.vars to try the challenge.'
-		);
-	}
-	return true;
+	return dev;
 }
 
 /**

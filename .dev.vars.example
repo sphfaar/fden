@@ -1,5 +1,6 @@
-# Copy to .dev.vars for local `bun run dev` and `bun run preview`.
-# Do not commit .dev.vars. Production keys are Worker secrets, not this file.
+# `bun run dev` does not run the Turnstile gate.
+# Copy to .dev.vars for `bun run preview`. Do not commit .dev.vars.
+# Production keys are Worker secrets, not this file.
 #
 # Site key: Cloudflare dashboard → Turnstile → your widget → Site key.
 # Secret key: the same widget → Secret key.

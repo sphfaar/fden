@@ -510,6 +510,26 @@
 		if (!selfWillSearch && !otherWillSearch) syncSourceSearchParams();
 	}
 
+	// All / JSON / HTML / Reset. Checked cards that are not loaded for this query are searched, and that search writes q.
+	function applyScrapingSelection() {
+		const query = code.trim();
+		const pending = enabledSourceCards.filter(
+			(card) =>
+				card.isChecked &&
+				!card.isDataLoaded &&
+				card.sourceDescriptors.isLoggedIn !== false &&
+				codeRgx.test(query)
+		);
+		if (pending.length > 0) {
+			for (const card of pending) {
+				void loadInitialProducts(card.sourceDescriptors.sourceID, query);
+			}
+			return;
+		}
+		const showing = enabledSourceCards.some((card) => card.isChecked && card.isDataLoaded);
+		syncSourceSearchParams(showing ? query : undefined);
+	}
+
 	async function searchFromEntry(entry: SearchEntry) {
 		code = entry.q;
 		checkOutdatedSourceData();
@@ -912,7 +932,7 @@
 			disabled={!codeRgx.test(code)}
 			class="relative z-20 flex font-medium disabled:opacity-50"
 		>
-			<ButtonsByScrapingType {enabledSourceCards} />
+			<ButtonsByScrapingType {enabledSourceCards} onApplySelection={applyScrapingSelection} />
 		</fieldset>
 		<fieldset
 			disabled={!codeRgx.test(code)}

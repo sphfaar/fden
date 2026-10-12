@@ -1,13 +1,12 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
 	import { scrapingTypeColors } from '#lib/scarping-types.js';
 
 	let {
-		enabledSourceCards = $bindable()
+		enabledSourceCards = $bindable(),
+		onApplySelection
 	}: {
 		enabledSourceCards: EnabledSourceCard[];
+		onApplySelection: () => void;
 	} = $props();
 
 	let srcConsensusDescription: { short: string; normal: string; long: string } = $state({
@@ -49,26 +48,6 @@
 		])
 	);
 
-	// Shallow replace keeps the loaded rows. page.url stays put, so the card list is not rebuilt from the previous query.
-	function syncDisabledSourcesInSearchParams() {
-		const current = page.shallow?.url ?? page.url;
-		const url = new URL(current.href);
-		for (const card of enabledSourceCards) {
-			const sourceID = card.sourceDescriptors.sourceID;
-			if (card.isChecked && card.sourceDescriptors.isLoggedIn !== false) {
-				url.searchParams.set(sourceID, '1');
-			} else {
-				url.searchParams.delete(sourceID);
-			}
-		}
-		const href = `${url.pathname}${url.search}${url.hash}`;
-		if (href === `${current.pathname}${current.search}${current.hash}`) return;
-		void goto(resolve(href as `/?${string}`), { shallow: true, replace: true }).catch(
-			(error) => {
-				console.error(error);
-			}
-		);
-	}
 </script>
 
 {#snippet scrapingTypeButtons(scrapingType: SourceDescriptors['scrapingType'])}
@@ -99,7 +78,7 @@
 					enabledSC.isChecked = enable;
 				}
 			}
-			syncDisabledSourcesInSearchParams();
+			onApplySelection();
 		}}
 		onmouseenter={() => {
 			srcConsensusDescription = {
@@ -165,7 +144,7 @@
 		type="button"
 		onclick={() => {
 			for (const sc of enabledSourceCards) sc.isChecked = false;
-			syncDisabledSourcesInSearchParams();
+			onApplySelection();
 		}}>Reset</button
 	>
 	<button
@@ -175,7 +154,7 @@
 			for (const sc of enabledSourceCards) {
 				sc.isChecked = sc.sourceDescriptors.isLoggedIn !== false;
 			}
-			syncDisabledSourcesInSearchParams();
+			onApplySelection();
 		}}
 		onmouseenter={() =>
 			enabledSourceCards?.forEach((sc) =>

@@ -17,16 +17,16 @@ import { descriptors as baldwinDescriptors, getters as baldwinGetters } from './
 import { descriptors as ikronDescriptors, getters as ikronGetters } from './ikron';
 import { descriptors as stauffDescriptors, getters as stauffGetters } from './stauff';
 import { descriptors as hengstDescriptors, getters as hengstGetters } from './hengst';
-// import {
-// 	descriptors as mpfiltriusaDescriptors,
-// 	getters as mpfiltriusaGetters
-// } from './mpfiltriusa';
 import {
 	descriptors as filtrationgroupDescriptors,
 	getters as filtrationgroupGetters
 } from './filtrationgroup';
 import { descriptors as mahleamDescriptors, getters as mahleamGetters } from './mahleam';
 import { descriptors as fbnDescriptors, getters as fbnGetters } from './fbn';
+import {
+	descriptors as mpfiltriusaDescriptors,
+	getters as mpfiltriusaGetters
+} from './mpfiltriusa';
 import { descriptors as argohytosDescriptors, getters as argohytosGetters } from './argohytos';
 type Getter = {
 	getProducts: GetProducts;
@@ -35,6 +35,7 @@ type Getter = {
 		user: string,
 		password: string
 	) => Promise<string | ActionFailure<{ authError: boolean }>>;
+	sessionCookieMaxAge?: (token: string) => number;
 };
 
 export const sourcesDescriptors: SourceDescriptors[] = [
@@ -54,11 +55,11 @@ export const sourcesDescriptors: SourceDescriptors[] = [
 	baldwinDescriptors,
 	ikronDescriptors,
 	stauffDescriptors,
-	// mpfiltriusaDescriptors,
 	filtrationgroupDescriptors,
 	mahleamDescriptors,
 	hengstDescriptors,
 	fbnDescriptors,
+	mpfiltriusaDescriptors,
 	argohytosDescriptors
 ];
 
@@ -79,10 +80,10 @@ export const sourcesGetters: Record<string, Getter> = {
 	baldwin: baldwinGetters,
 	ikron: ikronGetters,
 	stauff: stauffGetters,
-	// mpfiltriusa: mpfiltriusaGetters,
 	filtrationgroup: filtrationgroupGetters,
 	mahleam: mahleamGetters,
 	hengst: hengstGetters,
 	fbn: fbnGetters,
+	mpfiltriusa: mpfiltriusaGetters,
 	argohytos: argohytosGetters
 };

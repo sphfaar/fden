@@ -63,7 +63,7 @@
 		}
 	});
 
-	let { data, form }: PageProps = $props();
+	let { data }: PageProps = $props();
 
 	const maxItemsPerSrc = $state(1000);
 
@@ -713,7 +713,6 @@
 	{#each enabledSourceCards.filter((s) => typeof s.sourceDescriptors.isLoggedIn === 'boolean') as sessionSC (sessionSC.sourceDescriptors.sourceID)}
 		<SrcSessionForm
 			sourceDescriptors={sessionSC.sourceDescriptors}
-			formActionData={form}
 			class="border border-secondary/20 text-secondary/60"
 		/>
 	{/each}

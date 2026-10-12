@@ -1,61 +1,76 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { fromAction } from 'svelte/attachments';
-	import type { ActionData } from '../../routes/$types';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 
 	let {
 		sourceDescriptors,
-		formActionData,
 		class: className
 	}: {
 		sourceDescriptors: SourceDescriptorsLocal;
-		formActionData: ActionData;
 		class?: string;
 	} = $props();
 
 	let isLoading = $state(false);
-	let isDialogOpen = $state(false);
 	let isError = $state(false);
+	let dialogElement: HTMLDialogElement | undefined;
 
-	const enhanceForm = fromAction(enhance);
+	const isCookieSession = $derived(sourceDescriptors.sessionInput === 'cookie');
+
+	function showDialog() {
+		dialogElement?.showModal();
+	}
+
+	function hideDialog() {
+		dialogElement?.close();
+	}
+
+	function applySessionResult(data: Record<string, unknown>) {
+		if (data.sourceID !== sourceDescriptors.sourceID) return;
+		if (data.sessionCreatedSuccess === true) {
+			sourceDescriptors.isLoggedIn = true;
+			hideDialog();
+			isError = false;
+		} else if (data.sessionTerminatedSuccess === true) {
+			sourceDescriptors.isLoggedIn = false;
+			hideDialog();
+			isError = false;
+		} else if (data.authError === true) {
+			isError = true;
+		}
+	}
+
+	const enhanceForm = fromAction((element: HTMLFormElement) =>
+		enhance(element, () => {
+			isLoading = true;
+			return async ({ result, update }) => {
+				try {
+					await update();
+					if (result.type !== 'success' && result.type !== 'failure') return;
+					if (!result.data || typeof result.data !== 'object') return;
+					applySessionResult(result.data);
+				} finally {
+					isLoading = false;
+				}
+			};
+		})
+	);
 
 	function dialog(node: HTMLDialogElement) {
+		dialogElement = node;
 		const handleClick = (event: MouseEvent) => {
-			const target = event.target as HTMLDialogElement;
-			if (target.contains(node)) isDialogOpen = false;
+			const target = event.target as Node | null;
+			if (target?.contains(node)) hideDialog();
 		};
-		document.addEventListener('click', handleClick, true);
-
-		$effect(() => {
-			if (isDialogOpen) node.showModal();
-			else node.close();
-		});
+		document.addEventListener('click', handleClick, { capture: true });
 
 		return () => {
 			document.removeEventListener('click', handleClick, true);
 		};
 	}
-
-	$effect(() => {
-		if (formActionData?.sessionCreatedSuccess) {
-			sourceDescriptors.isLoggedIn = true;
-			isDialogOpen = false;
-			isLoading = false;
-			isError = false;
-		} else if (formActionData?.sessionTerminatedSuccess) {
-			sourceDescriptors.isLoggedIn = false;
-			isDialogOpen = false;
-			isLoading = false;
-			isError = false;
-		} else if (formActionData?.authError) {
-			isLoading = false;
-			isError = true;
-		}
-	});
 </script>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && (isDialogOpen = false)} />
+<svelte:window onkeydown={(event) => event.key === 'Escape' && hideDialog()} />
 
 <dialog
 	class="m-auto w-fit border border-primary/40 bg-background/80 px-6 pt-6 text-primary backdrop-blur-xl"
@@ -71,34 +86,45 @@
 			{sourceDescriptors.name} session request
 		</h4>
 		<form method="DIALOG" class="float-end">
-			<button
-				class="btn-esc cursor-pointer"
-				onclick={() => (isDialogOpen = false)}
-				formnovalidate>esc</button
-			>
+			<button class="btn-esc cursor-pointer" onclick={hideDialog} formnovalidate>esc</button>
 		</form>
 	</div>
 	<form
 		method="POST"
 		action="?/createSrcSession"
-		onsubmit={() => (isLoading = true)}
 		class="flex flex-col items-stretch gap-4 py-4"
 		{@attach enhanceForm}
 	>
 		<input type="checkbox" name="sourceID" checked value={sourceDescriptors.sourceID} hidden />
-		<input
-			name="username"
-			placeholder="username/email"
-			class="border border-primary/30"
-			required
-		/>
-		<input
-			name="password"
-			type="password"
-			placeholder="password"
-			class="mb-3 border border-primary/30"
-			required
-		/>
+		{#if isCookieSession}
+			<textarea
+				name="sessionCookie"
+				placeholder="wordpress_logged_in_…=…"
+				class="mb-3 w-96 border border-primary/30"
+				rows="4"
+				required
+				spellcheck="false"
+				autocomplete="off"
+				autocapitalize="off"></textarea>
+			<p class="text-center text-xs opacity-80">
+				Paste the wordpress_logged_in cookie from {sourceDescriptors.name}. DevTools, Application,
+				Cookies. Include the cookie name.
+			</p>
+		{:else}
+			<input
+				name="username"
+				placeholder="username/email"
+				class="border border-primary/30"
+				required
+			/>
+			<input
+				name="password"
+				type="password"
+				placeholder="password"
+				class="mb-3 border border-primary/30"
+				required
+			/>
+		{/if}
 		<button
 			class="mt-3 cursor-pointer border border-primary/70 hover:bg-primary/70 hover:text-background active:bg-primary active:text-background disabled:bg-background disabled:opacity-100"
 			type="submit"
@@ -110,7 +136,7 @@
 			<output
 				class="mt-2 text-center text-red-600"
 				name="request_status"
-				for="username password"
+				for={isCookieSession ? 'sessionCookie' : 'username password'}
 			>
 				Auth Error
 			</output>
@@ -123,11 +149,10 @@
 <form action="?/terminateSrcSession" method="POST" {@attach enhanceForm} class="w-fit">
 	<input type="checkbox" name="sourceID" checked value={sourceDescriptors.sourceID} hidden />
 	<button
-		onclick={(e) => {
-			if (sourceDescriptors.isLoggedIn === false) {
-				e.preventDefault();
-				isDialogOpen = true;
-			}
+		onclick={(event) => {
+			if (sourceDescriptors.isLoggedIn !== false) return;
+			event.preventDefault();
+			showDialog();
 		}}
 		class={[
 			className,

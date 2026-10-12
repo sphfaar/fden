@@ -37,6 +37,7 @@ declare global {
 		readonly banner?: string;
 		readonly scrapingType: 'JSON API' | 'HTML parser' /* | 'Automated browser'*/;
 		readonly isLoggedIn: boolean | undefined; // undefined: not mandatory
+		readonly sessionInput?: 'credentials' | 'cookie';
 	}
 
 	interface SourceDescriptorsLocal extends Omit<SourceDescriptors, 'isLoggedIn'> {

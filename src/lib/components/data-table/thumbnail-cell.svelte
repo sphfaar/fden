@@ -8,7 +8,7 @@
 		onOpen
 	}: {
 		urls?: string[];
-		onOpen: (url: string) => void;
+		onOpen: (urls: string[], index: number) => void;
 	} = $props();
 
 	const images = $derived(catalogHttpsUrls(urls));
@@ -45,7 +45,7 @@
 				aria-label={multiple
 					? `Expand thumbnail ${shown + 1} of ${images.length}`
 					: 'Expand thumbnail'}
-				onclick={() => onOpen(current)}
+				onclick={() => onOpen(images, shown)}
 			>
 				<img
 					src={current}

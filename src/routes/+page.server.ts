@@ -33,44 +33,52 @@ export const load: PageServerLoad = ({ url, locals }) => {
 };
 
 export const actions = {
-	createSrcSession: async ({ cookies, request, url }) => {
+	createSrcSession: async ({ cookies, request, url, locals }) => {
 		const data = await request.formData();
 		if (!data) error(500, 'create session form data error');
 		const sourceID = String(data.get('sourceID'));
-		const username = String(data.get('username'));
-		const password = String(data.get('password'));
-
+		const descriptor = sourcesDescriptors.find((source) => source.sourceID === sourceID);
 		const getSession = sourcesGetters[sourceID]?.getSession;
-		if (!getSession || !username || !password) {
-			return fail(400, { invalid: true });
-		}
-		const token = await getSession(username, password);
-		if (!token) error(500, 'token create error');
+		if (!descriptor || !getSession) return fail(400, { invalid: true, sourceID });
 
-		if (typeof token === 'string') {
-			cookies.set(`${sourceID}SessionToken`, token, {
-				path: '/',
-				// server side only cookie so you can't use `document.cookie`
-				httpOnly: true,
-				// only requests from same site can send cookies
-				sameSite: 'strict',
-				// local Vite is http; production is https
-				secure: url.protocol === 'https:',
-				maxAge: 60 * 60
-			});
-		} else {
-			if (token?.data.authError) return token;
-			return fail(418);
+		const isCookieSession = descriptor.sessionInput === 'cookie';
+		const username = String(data.get('username') ?? '');
+		const password = String(data.get('password') ?? '');
+		const sessionCookie = String(data.get('sessionCookie') ?? '');
+		if (isCookieSession ? !sessionCookie.trim() : !username || !password) {
+			return fail(400, { invalid: true, sourceID });
 		}
 
-		return { sessionCreatedSuccess: true };
+		const token = isCookieSession
+			? await getSession(sessionCookie, '')
+			: await getSession(username, password);
+		if (typeof token !== 'string') {
+			return token?.data.authError ? fail(400, { authError: true, sourceID }) : fail(418);
+		}
+
+		cookies.set(`${sourceID}SessionToken`, token, {
+			path: '/',
+			// server side only cookie so you can't use `document.cookie`
+			httpOnly: true,
+			// only requests from same site can send cookies
+			sameSite: 'strict',
+			// local Vite is http; production is https
+			secure: url.protocol === 'https:',
+			maxAge: sourcesGetters[sourceID]?.sessionCookieMaxAge?.(token) ?? 60 * 60
+		});
+		locals.srcSessions = [
+			...locals.srcSessions.filter((session) => session.name !== sourceID),
+			{ name: sourceID, value: token }
+		];
+
+		return { sessionCreatedSuccess: true, sourceID };
 	},
 
-	terminateSrcSession: async ({ cookies, request, url }) => {
+	terminateSrcSession: async ({ cookies, request, url, locals }) => {
 		const data = await request.formData();
 		if (!data) error(500, 'session termination form data error');
 		const sourceID = String(data.get('sourceID'));
-		if (!sourcesGetters[sourceID]?.getSession) return fail(400, { invalid: true });
+		if (!sourcesGetters[sourceID]?.getSession) return fail(400, { invalid: true, sourceID });
 		cookies.set(`${sourceID}SessionToken`, '', {
 			path: '/',
 			// server side only cookie so you can't use `document.cookie`
@@ -80,6 +88,7 @@ export const actions = {
 			secure: url.protocol === 'https:',
 			expires: new Date(0)
 		});
-		return { sessionTerminatedSuccess: true };
+		locals.srcSessions = locals.srcSessions.filter((session) => session.name !== sourceID);
+		return { sessionTerminatedSuccess: true, sourceID };
 	}
 } satisfies Actions;

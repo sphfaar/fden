@@ -1,4 +1,4 @@
-import { getProducts, getNextProducts } from './get-data.server';
+import { getProducts, getNextProducts, getSession, sessionCookieMaxAge } from './get-data.server';
 import banner from './banner.svg';
 import logo from './logo.svg';
 
@@ -8,10 +8,13 @@ export const descriptors: SourceDescriptors = {
 	banner: banner,
 	logo: logo,
 	scrapingType: 'HTML parser',
-	isLoggedIn: undefined
+	isLoggedIn: false,
+	sessionInput: 'cookie'
 };
 
 export const getters = {
 	getProducts,
-	getNextProducts
+	getNextProducts,
+	getSession,
+	sessionCookieMaxAge
 };

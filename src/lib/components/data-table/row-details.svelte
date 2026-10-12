@@ -6,7 +6,7 @@
 		onOpenThumbnail
 	}: {
 		product: ProductOfTable;
-		onOpenThumbnail: (url: string) => void;
+		onOpenThumbnail: (urls: string[], index: number) => void;
 	} = $props();
 
 	interface FactLine {
@@ -94,7 +94,7 @@
 					type="button"
 					class="cursor-pointer border border-primary/30 bg-white p-0.5 hover:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden"
 					aria-label="Expand thumbnail"
-					onclick={() => onOpenThumbnail(url)}
+					onclick={() => onOpenThumbnail(thumbnails, i)}
 				>
 					<img
 						src={url}

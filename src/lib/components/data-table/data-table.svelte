@@ -253,8 +253,23 @@
 	// One entry per open row. Absent keys stay independent, so opening one row
 	// does not refresh the other hundreds.
 	let expandedRows = $state<Record<string, true>>({});
-	let lightboxUrl = $state<string | undefined>();
+	let lightboxImages = $state.raw<string[]>([]);
+	let lightboxIndex = $state(0);
 	let lightbox: HTMLDialogElement | undefined;
+	let lightboxMotion = 0;
+
+	const lightboxShown = $derived(
+		lightboxImages.length === 0
+			? 0
+			: Math.min(Math.max(lightboxIndex, 0), lightboxImages.length - 1)
+	);
+	const lightboxCurrent = $derived(lightboxImages[lightboxShown]);
+	const lightboxPrevious = $derived(
+		lightboxShown > 0 ? lightboxImages[lightboxShown - 1] : undefined
+	);
+	const lightboxNext = $derived(
+		lightboxShown < lightboxImages.length - 1 ? lightboxImages[lightboxShown + 1] : undefined
+	);
 
 	const rowKeys = $derived.by(() => {
 		const keys: string[] = [];
@@ -353,10 +368,84 @@
 		return () => node.removeEventListener('click', onBodyClick);
 	}
 
-	async function openThumbnail(url: string) {
-		lightboxUrl = url;
+	function prefersReducedMotion(): boolean {
+		return (
+			typeof matchMedia === 'function' &&
+			matchMedia('(prefers-reduced-motion: reduce)').matches
+		);
+	}
+
+	function lightboxPhotos(): HTMLElement[] {
+		if (!lightbox) return [];
+		return [...lightbox.querySelectorAll<HTMLElement>('[data-lightbox-index]')];
+	}
+
+	function lightboxPhotoIndex(node: HTMLElement): number | undefined {
+		const value = node.dataset.lightboxIndex;
+		if (!value) return undefined;
+		const index = Number.parseInt(value, 10);
+		if (!Number.isInteger(index) || String(index) !== value) return undefined;
+		return index;
+	}
+
+	// Measure each photo first so the clicked neighbor moves into the center.
+	async function showLightboxAt(index: number) {
+		if (index < 0 || index >= lightboxImages.length || index === lightboxShown) return;
+		const motion = ++lightboxMotion;
+		const before: Record<number, DOMRect> = {};
+		if (!prefersReducedMotion()) {
+			for (const node of lightboxPhotos()) {
+				for (const animation of node.getAnimations()) animation.cancel();
+				const key = lightboxPhotoIndex(node);
+				if (key !== undefined) before[key] = node.getBoundingClientRect();
+			}
+		}
+		lightboxIndex = index;
+		await tick();
+		if (motion !== lightboxMotion || Object.keys(before).length === 0) return;
+		for (const node of lightboxPhotos()) {
+			const key = lightboxPhotoIndex(node);
+			const from = key === undefined ? undefined : before[key];
+			if (!from) continue;
+			const to = node.getBoundingClientRect();
+			const dx = from.left + from.width / 2 - (to.left + to.width / 2);
+			const dy = from.top + from.height / 2 - (to.top + to.height / 2);
+			const sx = to.width === 0 ? 1 : from.width / to.width;
+			const sy = to.height === 0 ? 1 : from.height / to.height;
+			if (
+				Math.abs(dx) < 0.5 &&
+				Math.abs(dy) < 0.5 &&
+				Math.abs(sx - 1) < 0.01 &&
+				Math.abs(sy - 1) < 0.01
+			) {
+				continue;
+			}
+			node.animate(
+				[
+					{ transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})` },
+					{ transform: 'translate(0px, 0px) scale(1, 1)' }
+				],
+				{ duration: 220, easing: 'ease' }
+			);
+		}
+	}
+
+	async function openThumbnail(urls: string[], index: number) {
+		lightboxMotion += 1;
+		lightboxImages = urls;
+		lightboxIndex = index;
 		await tick();
 		if (lightbox && !lightbox.open) lightbox.showModal();
+	}
+
+	function onLightboxKeydown(event: KeyboardEvent) {
+		if (event.key === 'ArrowLeft') {
+			event.preventDefault();
+			void showLightboxAt(lightboxShown - 1);
+		} else if (event.key === 'ArrowRight') {
+			event.preventDefault();
+			void showLightboxAt(lightboxShown + 1);
+		}
 	}
 
 	function onLightboxBackdrop(event: MouseEvent) {
@@ -372,7 +461,9 @@
 	}
 
 	function onLightboxClose() {
-		lightboxUrl = undefined;
+		lightboxMotion += 1;
+		lightboxImages = [];
+		lightboxIndex = 0;
 	}
 
 	function lightboxDialog(node: HTMLDialogElement) {
@@ -671,11 +762,19 @@
 </table>
 
 <dialog
-	class="m-auto w-fit max-w-[92vw] border border-primary/40 bg-background p-3 text-primary"
-	aria-label="Product thumbnail"
+	class="m-auto w-fit max-w-[92vw] overflow-hidden border border-primary/40 bg-background/80 p-3 text-primary"
+	aria-label={lightboxImages.length > 1
+		? `Product thumbnail ${lightboxShown + 1} of ${lightboxImages.length}`
+		: 'Product thumbnail'}
 	{@attach lightboxDialog}
+	onkeydown={onLightboxKeydown}
 >
-	<div class="mb-2 flex justify-end">
+	<div class="mb-2 flex items-center justify-end gap-3">
+		{#if lightboxImages.length > 1}
+			<span class="mr-auto text-sm tabular-nums"
+				>{lightboxShown + 1}/{lightboxImages.length}</span
+			>
+		{/if}
 		<button
 			type="button"
 			class="cursor-pointer border border-primary/50 px-2 py-0.5 text-sm font-medium hover:bg-primary/80 hover:text-background"
@@ -684,11 +783,59 @@
 			esc
 		</button>
 	</div>
-	{#if lightboxUrl}
-		<img
-			src={lightboxUrl}
-			alt="Product thumbnail"
-			class="max-h-[80vh] max-w-[88vw] object-contain"
-		/>
+	{#if lightboxCurrent}
+		{#if lightboxImages.length > 1}
+			<div class="grid w-[min(86vw,1100px)] grid-cols-[1fr_3fr_1fr] items-center gap-4">
+				<div class="flex justify-end">
+					{#if lightboxPrevious}
+						<button
+							type="button"
+							class="cursor-pointer border border-primary/30 bg-white p-0.5 hover:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden"
+							aria-label="Previous thumbnail"
+							onclick={() => showLightboxAt(lightboxShown - 1)}
+						>
+							<img
+								src={lightboxPrevious}
+								alt=""
+								data-lightbox-index={lightboxShown - 1}
+								draggable="false"
+								class="max-h-[24vh] max-w-full object-contain"
+							/>
+						</button>
+					{/if}
+				</div>
+				<img
+					src={lightboxCurrent}
+					alt="Product thumbnail"
+					data-lightbox-index={lightboxShown}
+					draggable="false"
+					class="relative z-10 mx-auto max-h-[74vh] max-w-full object-contain"
+				/>
+				<div class="flex justify-start">
+					{#if lightboxNext}
+						<button
+							type="button"
+							class="cursor-pointer border border-primary/30 bg-white p-0.5 hover:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden"
+							aria-label="Next thumbnail"
+							onclick={() => showLightboxAt(lightboxShown + 1)}
+						>
+							<img
+								src={lightboxNext}
+								alt=""
+								data-lightbox-index={lightboxShown + 1}
+								draggable="false"
+								class="max-h-[24vh] max-w-full object-contain"
+							/>
+						</button>
+					{/if}
+				</div>
+			</div>
+		{:else}
+			<img
+				src={lightboxCurrent}
+				alt="Product thumbnail"
+				class="max-h-[80vh] max-w-[88vw] object-contain"
+			/>
+		{/if}
 	{/if}
 </dialog>

@@ -61,15 +61,15 @@ export async function getHtmlToProducts<T>(
 			meta: {
 				status: response.status,
 				currentItemsDisplayed: products.length,
-				totalItems: totalItems,
-				page: page,
+				totalItems,
+				page,
 				pages: nPages,
 				maxItemsPagination: pagination,
 				performanceTimings: {
 					proxyToSource: reqEnd && reqStart ? reqEnd - reqStart : undefined
 				}
 			},
-			products: products
+			products
 		};
 	} catch (err) {
 		failSourceRequest(err, `${sourceID} error`);

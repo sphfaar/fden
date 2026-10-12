@@ -4,7 +4,7 @@ import logo from './logo.avif';
 export const descriptors: SourceDescriptors = {
 	sourceID: 'filtrec',
 	name: 'Filtrec',
-	logo: logo,
+	logo,
 	scrapingType: 'JSON API',
 	isLoggedIn: undefined
 };

@@ -5,8 +5,8 @@ import banner from './banner.svg';
 export const descriptors: SourceDescriptors = {
 	sourceID: 'hifi',
 	name: 'HIFI',
-	logo: logo,
-	banner: banner,
+	logo,
+	banner,
 	scrapingType: 'JSON API',
 	isLoggedIn: undefined
 };

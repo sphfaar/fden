@@ -4,7 +4,7 @@ import logo from './logo.svg';
 export const descriptors: SourceDescriptors = {
 	sourceID: 'faifiltri',
 	name: 'Faifiltri',
-	logo: logo,
+	logo,
 	scrapingType: 'HTML parser',
 	isLoggedIn: undefined
 };

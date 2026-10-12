@@ -5,8 +5,8 @@ import logo from './logo.svg';
 export const descriptors: SourceDescriptors = {
 	sourceID: 'mpfiltriusa',
 	name: 'MP Filtri USA',
-	banner: banner,
-	logo: logo,
+	banner,
+	logo,
 	scrapingType: 'HTML parser',
 	isLoggedIn: false,
 	sessionInput: 'cookie'

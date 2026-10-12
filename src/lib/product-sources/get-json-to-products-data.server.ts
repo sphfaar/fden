@@ -55,7 +55,7 @@ export async function getJsonToProducts<T>(
 					proxyToSource: reqEnd && reqStart ? reqEnd - reqStart : undefined
 				}
 			},
-			products: products
+			products
 		};
 	} catch (err) {
 		failSourceRequest(err, `${sourceID} error`);

@@ -4,7 +4,7 @@ import banner from './banner.avif';
 export const descriptors: SourceDescriptors = {
 	sourceID: 'ufiam',
 	name: 'UFI AM.',
-	banner: banner,
+	banner,
 	scrapingType: 'JSON API',
 	isLoggedIn: undefined
 };

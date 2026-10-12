@@ -5,8 +5,8 @@ import banner from './banner.svg';
 export const descriptors: SourceDescriptors = {
 	sourceID: 'hengst',
 	name: 'Hengst',
-	logo: logo,
-	banner: banner,
+	logo,
+	banner,
 	scrapingType: 'HTML parser',
 	isLoggedIn: undefined
 };

@@ -4,7 +4,7 @@ import logo from './logo.svg';
 export const descriptors: SourceDescriptors = {
 	sourceID: 'wixeu',
 	name: 'WIX EU',
-	logo: logo,
+	logo,
 	scrapingType: 'JSON API',
 	isLoggedIn: undefined
 };

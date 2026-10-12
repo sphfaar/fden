@@ -4,7 +4,7 @@ import banner from './banner.webp';
 export const descriptors: SourceDescriptors = {
 	sourceID: 'sf',
 	name: 'SF',
-	banner: banner,
+	banner,
 	scrapingType: 'JSON API',
 	isLoggedIn: undefined
 };

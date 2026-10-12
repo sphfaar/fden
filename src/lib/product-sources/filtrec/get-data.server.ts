@@ -215,8 +215,8 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 				method: 'GET',
 				url: SEARCH_URL,
 				params: {
-					code: code,
-					page: page,
+					code,
+					page,
 					locale: LOCALE
 				},
 				headers: catalogHeaders

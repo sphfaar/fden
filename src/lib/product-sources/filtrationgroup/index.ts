@@ -5,8 +5,8 @@ import logo from './logo.svg';
 export const descriptors: SourceDescriptors = {
 	sourceID: 'filtrationgroup',
 	name: 'Filtration Group',
-	banner: banner,
-	logo: logo,
+	banner,
+	logo,
 	scrapingType: 'HTML parser',
 	isLoggedIn: undefined
 };

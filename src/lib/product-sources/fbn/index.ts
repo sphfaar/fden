@@ -4,7 +4,7 @@ import banner from './banner.avif';
 export const descriptors: SourceDescriptors = {
 	sourceID: 'fbn',
 	name: 'FBN',
-	banner: banner,
+	banner,
 	scrapingType: 'HTML parser',
 	isLoggedIn: false
 };

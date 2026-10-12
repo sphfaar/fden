@@ -5,8 +5,8 @@ import logo from './logo.avif';
 export const descriptors: SourceDescriptors = {
 	sourceID: 'argohytos',
 	name: 'Argo Hytos',
-	logo: logo,
-	banner: banner,
+	logo,
+	banner,
 	scrapingType: 'JSON API',
 	isLoggedIn: undefined
 };

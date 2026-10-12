@@ -4,7 +4,7 @@ import logo from './logo.avif';
 export const descriptors: SourceDescriptors = {
 	sourceID: 'donaldson',
 	name: 'Donaldson',
-	logo: logo,
+	logo,
 	scrapingType: 'JSON API',
 	isLoggedIn: undefined
 };

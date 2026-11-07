@@ -1,7 +1,8 @@
 import type { GetNextProducts, GetProducts } from '../types';
 import type ResponseSchema from './response-schema';
-import { getJsonToProducts } from '../get-json-to-products-data.server';
+import { env } from 'cloudflare:workers';
 import { headers } from '#lib/product-sources/constants.js';
+import { getJsonToProducts } from '../get-json-to-products-data.server';
 import { catalogHttpsUrl } from '#lib/safe-catalog-url.js';
 
 const SEARCH_ORIGIN = 'https://crossref.search.windows.net';
@@ -57,7 +58,24 @@ function toProduct(row: ParkerRow): Product {
 	};
 }
 
+function emptyFailure(): ProductsData {
+	return {
+		meta: {
+			status: 500,
+			currentItemsDisplayed: 0,
+			totalItems: 0,
+			page: 0
+		},
+		products: []
+	};
+}
+
 export const getProducts: GetProducts = async (code, maxItems, config, page = 1) => {
+	const apiKey = env.PARKER_API_KEY?.trim();
+	if (!apiKey) {
+		console.error('parker PARKER_API_KEY is unset');
+		return emptyFailure();
+	}
 	const nItems = Math.min(maxItems, PAGE_CAP);
 	const safePage = page > 0 ? page : 1;
 	const skip = nItems * (safePage - 1);
@@ -67,7 +85,7 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 		url: `${SEARCH_ORIGIN}/indexes/partcrossreference-prod-search-view-index/docs?api-version=2019-05-06&facet=FromManufacturerName,count%3A1000&facet=Type,count%3A1000&facet=DivisionName,count%3A1000&search=${codeEncoded}%20and%20CleanedFromPartNumber%3A%2F(.*)${codeEncoded}(.*)%2F&%24filter=(DivisionName%20ne%20'Total%20Filtration%20Services')%20and%20Published%20eq%20'YES'&%24top=${nItems}&%24skip=${skip}&queryType=full&%24count=true`,
 		headers: {
 			...headers,
-			'api-key': 'C57B3E22FF9AD549129AB375C6F2F93A'
+			'api-key': apiKey
 		}
 	};
 	try {
@@ -95,17 +113,9 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 			config,
 			safePage
 		);
-	} catch (err) {
-		console.error('Parker error', err);
-		return {
-			meta: {
-				status: 500,
-				currentItemsDisplayed: 0,
-				totalItems: 0,
-				page: 0
-			},
-			products: []
-		};
+	} catch (error) {
+		console.error('Parker error', error);
+		return emptyFailure();
 	}
 };
 

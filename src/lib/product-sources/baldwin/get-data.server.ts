@@ -2,6 +2,7 @@ import type { GetNextProducts, GetProducts } from '../types';
 import type BaldwinSchema from './response-schema';
 import type { BaldwinPartDocument, BaldwinPartSchema, CrossReferenceDocument } from './response-schema';
 import axios from '#lib/product-sources/axios.server.js';
+import { env } from 'cloudflare:workers';
 import { headers } from '#lib/product-sources/constants.js';
 import { catalogHttpsUrl } from '#lib/safe-catalog-url.js';
 
@@ -10,18 +11,18 @@ const DETAILS_ORIGIN = 'https://ph.parker.com/us/en/';
 const PRODUCT_PAGE_ORIGIN = 'https://products.parker.com/us/en/';
 const ZOOM_DIRECTORY =
 	'https://www.parker.com/content/dam/Parker-com/Online/Product-Images/Engine-Mobile-Aftermarket-Division/zoom_1000x1000/';
-// Public vendor key. The old baldwinfilters.com POST only forwarded this to the same select.
-const SUBSCRIPTION_KEY = 'a61a00f528344ce29179af297ccbbea8';
 const PAGE_CAP = 1000;
 const PART_BATCH = 40;
 const SERIES_CONCURRENCY = 4;
 const MILLIMETERS = /^\d+(?:\.\d+)?$/;
 
-const searchHeaders = {
-	...headers,
-	Accept: 'application/json',
-	'Ocp-Apim-Subscription-Key': SUBSCRIPTION_KEY
-};
+function searchHeaders(subscriptionKey: string) {
+	return {
+		...headers,
+		Accept: 'application/json',
+		'Ocp-Apim-Subscription-Key': subscriptionKey
+	};
+}
 
 interface SeriesPage {
 	category?: string;
@@ -283,7 +284,10 @@ function crossReferenceRows(body: BaldwinSchema): {
 	return { documents, totalItems };
 }
 
-async function loadParts(partNumbers: string[]): Promise<Map<string, BaldwinPartDocument>> {
+async function loadParts(
+	partNumbers: string[],
+	requestHeaders: ReturnType<typeof searchHeaders>
+): Promise<Map<string, BaldwinPartDocument>> {
 	const parts = new Map<string, BaldwinPartDocument>();
 	if (partNumbers.length === 0) return parts;
 	for (let index = 0; index < partNumbers.length; index += PART_BATCH) {
@@ -299,7 +303,7 @@ async function loadParts(partNumbers: string[]): Promise<Map<string, BaldwinPart
 					rows: batch.length,
 					wt: 'json'
 				},
-				headers: searchHeaders,
+				headers: requestHeaders,
 				timeout: 15_000,
 				validateStatus: () => true
 			});
@@ -383,6 +387,12 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 		};
 	}
 
+	const subscriptionKey = env.BALDWIN_SUBSCRIPTION_KEY?.trim();
+	if (!subscriptionKey) {
+		console.error('baldwin BALDWIN_SUBSCRIPTION_KEY is unset');
+		return emptyFailure();
+	}
+	const requestHeaders = searchHeaders(subscriptionKey);
 	const competitor = `compPartId_s:(${solrPhrase(formattedCode)} OR ${formattedCode}* OR *${formattedCode}*)`;
 	const started = config?.showPerfReqProxyToSource ? Date.now() : undefined;
 
@@ -399,7 +409,7 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 				'group.query': competitor,
 				q: `${competitor}^1 OR partNumber_s:(${solrPhrase(formattedCode)} OR ${formattedCode}*)^2`
 			},
-			headers: searchHeaders,
+			headers: requestHeaders,
 			timeout: 15_000,
 			validateStatus: () => true
 		});
@@ -434,7 +444,7 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 
 		const partNumbers = [...new Set(products.map((product) => product.source_reference_code))];
 		const [parts, series] = await Promise.all([
-			loadParts(partNumbers),
+			loadParts(partNumbers, requestHeaders),
 			loadSeries(seriesPages)
 		]);
 		for (const [index, product] of products.entries()) {

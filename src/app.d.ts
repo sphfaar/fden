@@ -110,6 +110,14 @@ declare global {
 		specs?: Product['specs'];
 		packaging?: Product['packaging'];
 	}
+
+	namespace Cloudflare {
+		interface Env {
+			PARKER_API_KEY?: string;
+			BALDWIN_SUBSCRIPTION_KEY?: string;
+			DONALDSON_SERVICE_TOKEN?: string;
+		}
+	}
 }
 
 export {};

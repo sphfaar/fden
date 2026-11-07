@@ -1,8 +1,14 @@
-# `bun run dev` does not run the Turnstile gate.
-# Copy to .dev.vars for `bun run preview`. Do not commit .dev.vars.
-# Production keys are Worker secrets, not this file.
+# Copy to .dev.vars. Do not commit .dev.vars.
+# `bun run dev` and `bun run preview` read this file through the Workers platform proxy.
+# `bun run dev` still skips the Turnstile gate. Production does not upload this file:
+# set each name with `bunx wrangler secret put`, then `bun run deploy`.
 #
 # Site key: Cloudflare dashboard → Turnstile → your widget → Site key.
 # Secret key: the same widget → Secret key.
 TURNSTILE_SITE_KEY=
 TURNSTILE_SECRET_KEY=
+
+# Public vendor keys those catalogs already ship in their own pages.
+PARKER_API_KEY=
+BALDWIN_SUBSCRIPTION_KEY=
+DONALDSON_SERVICE_TOKEN=

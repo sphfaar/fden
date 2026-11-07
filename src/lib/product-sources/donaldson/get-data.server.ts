@@ -3,6 +3,7 @@ import type { GetNextProducts, GetProducts } from '../types';
 import type ResponseSchema from './response-schema';
 import type { DonaldsonAttributeBody, DonaldsonAttributeResponse } from './response-schema';
 import axios from '#lib/product-sources/axios.server.js';
+import { env } from 'cloudflare:workers';
 import { headers } from '#lib/product-sources/constants.js';
 import { getJsonToProducts } from '#lib/product-sources/get-json-to-products-data.server.js';
 import { catalogHttpsUrl } from '#lib/safe-catalog-url.js';
@@ -13,8 +14,6 @@ const SEARCH_URL = `${CATALOG_ORIGIN}/store/en-it/search`;
 const ATTR_URL = `${CATALOG_ORIGIN}/store/rest/fetchProductAttrAndRecentlyViewed`;
 // A GET of /store/en-it/ is 404 and still opens the guest session whose attribute names are English.
 const SESSION_URL = `${CATALOG_ORIGIN}/store/en-it/`;
-// Public token from the shop bundle. The attribute route answers 401 without it.
-const SERVICE_TOKEN = '3TuSgTm3MyS9ZL0adPDjYg==';
 const PAGE_CAP = 20;
 const ATTR_CONCURRENCY = 6;
 const MILLIMETERS = /^(\d+(?:[.,]\d+)?)\s*mm\b/i;
@@ -198,7 +197,8 @@ async function openAttributeSession(): Promise<string | undefined> {
 
 async function fetchAttributes(
 	key: DetailKey,
-	cookie: string
+	cookie: string,
+	serviceToken: string
 ): Promise<DonaldsonAttributeBody | undefined> {
 	const response: AxiosResponse<DonaldsonAttributeResponse> = await axios.get(ATTR_URL, {
 		params: {
@@ -208,7 +208,7 @@ async function fetchAttributes(
 		},
 		headers: {
 			...searchHeaders,
-			service_token: SERVICE_TOKEN,
+			service_token: serviceToken,
 			Cookie: cookie
 		},
 		validateStatus: () => true
@@ -218,6 +218,11 @@ async function fetchAttributes(
 
 async function addAttributes(detailByProduct: Map<Product, DetailKey>): Promise<void> {
 	if (detailByProduct.size === 0) return;
+	const serviceToken = env.DONALDSON_SERVICE_TOKEN?.trim();
+	if (!serviceToken) {
+		console.error('donaldson DONALDSON_SERVICE_TOKEN is unset');
+		return;
+	}
 	let cookie: string | undefined;
 	try {
 		cookie = await openAttributeSession();
@@ -226,6 +231,8 @@ async function addAttributes(detailByProduct: Map<Product, DetailKey>): Promise<
 		return;
 	}
 	if (!cookie) return;
+	const sessionCookie = cookie;
+	const token = serviceToken;
 
 	const groups = new Map<string, { key: DetailKey; products: Product[] }>();
 	for (const [product, key] of detailByProduct) {
@@ -244,7 +251,7 @@ async function addAttributes(detailByProduct: Map<Product, DetailKey>): Promise<
 			const group = pending[current];
 			if (!group) return;
 			try {
-				const body = await fetchAttributes(group.key, cookie as string);
+				const body = await fetchAttributes(group.key, sessionCookie, token);
 				if (!body) continue;
 				for (const product of group.products) applyAttributes(product, body);
 			} catch (error) {

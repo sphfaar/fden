@@ -1,7 +1,6 @@
 {
 	"$schema": "./node_modules/wrangler/config-schema.json",
 	"name": "w-cliffpanicmaidassaultsmokepropaterfieldclosuretrap",
-	"main": ".svelte-kit/cloudflare/_worker.js",
 	"preview_urls": false,
 	"compatibility_date": "2026-09-21",
 	"compatibility_flags": ["nodejs_als"],

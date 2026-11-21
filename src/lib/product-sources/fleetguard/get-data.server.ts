@@ -3,9 +3,7 @@ import type FleetguardPartsResponse from './response1-schema';
 import type { FleetguardPartsPayload } from './response1-schema';
 import type FleetguardSchema from './response-schema';
 import type { FleetguardItem, FleetguardSpec, FleetguardSpecResponse } from './response-schema';
-import axios from '#lib/product-sources/axios.server.js';
 import { headers } from '#lib/product-sources/constants.js';
-import { getJsonToProducts } from '#lib/product-sources/get-json-to-products-data.server.js';
 import { catalogHttpsUrl } from '#lib/safe-catalog-url.js';
 
 const CATALOG_ORIGIN = 'https://www.fleetguard.com';
@@ -33,23 +31,67 @@ const catalogHeaders = {
 	Referer: `${CATALOG_ORIGIN}/results`
 };
 
-function apexCall(classname: string, method: string, parameters: object) {
+function apexBody(classname: string, method: string, parameters: object) {
 	return {
-		method: 'POST' as const,
-		url: APEX_URL,
-		headers: {
-			...catalogHeaders,
-			'Content-Type': 'application/json; charset=utf-8'
-		},
-		data: {
-			namespace: '',
-			classname,
-			method,
-			isContinuation: false,
-			params: parameters,
-			cacheable: false
-		}
+		namespace: '',
+		classname,
+		method,
+		isContinuation: false,
+		params: parameters,
+		cacheable: false
 	};
+}
+
+// www.fleetguard.com is on Cloudflare. A Worker subrequest is handed to that zone as HTTP,
+// Salesforce answers 301 to the same https URL, and following it loops. Axios uses Node's
+// redirect client, whose response has no `.req` on workerd, so the first hop throws
+// ERR_FR_REDIRECTION_FAILURE. fetch with redirect manual keeps the 301 instead of throwing.
+async function catalogPost<T>(body: object): Promise<{ status: number; data: T | undefined }> {
+	let url = APEX_URL;
+	const payload = JSON.stringify(body);
+	for (let hop = 0; hop < 4; hop++) {
+		const response = await fetch(url, {
+			method: 'POST',
+			headers: {
+				...catalogHeaders,
+				Accept: 'application/json',
+				'Content-Type': 'application/json; charset=utf-8'
+			},
+			body: payload,
+			redirect: 'manual'
+		});
+		if (response.status >= 300 && response.status < 400) {
+			const location = response.headers.get('location');
+			await response.body?.cancel();
+			let next: URL | undefined;
+			try {
+				next = location ? new URL(location, url) : undefined;
+			} catch {
+				next = undefined;
+			}
+			if (!next || next.href === new URL(url).href) {
+				console.error(
+					'Fleetguard redirect loop',
+					url,
+					'Worker subrequests to this zone are redirected to the same URL'
+				);
+				return { status: 502, data: undefined };
+			}
+			url = next.href;
+			continue;
+		}
+		if (response.status >= 400) {
+			await response.body?.cancel();
+			return { status: response.status, data: undefined };
+		}
+		try {
+			return { status: response.status, data: (await response.json()) as T };
+		} catch (error) {
+			console.error('Fleetguard JSON', url, error);
+			return { status: 502, data: undefined };
+		}
+	}
+	return { status: 502, data: undefined };
 }
 
 function text(value: string | null | undefined): string | undefined {
@@ -176,13 +218,13 @@ async function addSpecifications(productsById: Map<string, Product[]>): Promise<
 			if (next.done) return;
 			const [id, products] = next.value;
 			try {
-				const response = await axios.request<FleetguardSpecResponse>(
-					apexCall(SPEC_CLASS, 'retrieveProductSpecifications', {
+				const response = await catalogPost<FleetguardSpecResponse>(
+					apexBody(SPEC_CLASS, 'retrieveProductSpecifications', {
 						productId: id,
 						language: 'en-US'
 					})
 				);
-				if (response.status >= 400) continue;
+				if (response.status >= 400 || !response.data) continue;
 				const rows = specRows(response.data.returnValue);
 				for (const product of products) applySpecs(product, rows);
 			} catch (error) {
@@ -235,13 +277,13 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 	const productsById = new Map<string, Product[]>();
 
 	try {
-		const listed = await axios.request<FleetguardPartsResponse>(
-			apexCall(SEARCH_CLASS, 'fetchProductsFromParts', { searchTerm: code })
+		const listed = await catalogPost<FleetguardPartsResponse>(
+			apexBody(SEARCH_CLASS, 'fetchProductsFromParts', { searchTerm: code })
 		);
-		if (listed.status >= 400) {
+		if (listed.status >= 400 || !listed.data) {
 			return {
 				meta: {
-					status: listed.status,
+					status: listed.status >= 400 ? listed.status : 502,
 					currentItemsDisplayed: 0,
 					page: 0
 				},
@@ -266,25 +308,42 @@ export const getProducts: GetProducts = async (code, maxItems, config, page = 1)
 			};
 		}
 
-		const productsData = await getJsonToProducts<FleetguardSchema>(
-			'fleetguard',
-			apexCall(SEARCH_CLASS, 'getProductDetailsFromParts', {
+		const detailsStarted = config?.showPerfReqProxyToSource ? Date.now() : undefined;
+		const details = await catalogPost<FleetguardSchema>(
+			apexBody(SEARCH_CLASS, 'getProductDetailsFromParts', {
 				ids,
 				searchTerm: code,
 				pageNumber: safePage,
 				pageSize
-			}),
-			{
-				rowsIterator: (responseData) =>
-					(responseData.returnValue?.items ?? []).map((row) => toProduct(row, productsById)),
-				nPages: (responseData) =>
-					Math.ceil((responseData.returnValue?.totalRecords ?? 0) / pageSize),
-				pagination: pageSize,
-				totalItems: (responseData) => responseData.returnValue?.totalRecords
-			},
-			config,
-			safePage
+			})
 		);
+		if (details.status >= 400 || !details.data) {
+			return {
+				meta: {
+					status: details.status >= 400 ? details.status : 502,
+					currentItemsDisplayed: 0,
+					page: 0
+				},
+				products: []
+			};
+		}
+		const products = (details.data.returnValue?.items ?? []).map((row) =>
+			toProduct(row, productsById)
+		);
+		const totalRecords = details.data.returnValue?.totalRecords ?? 0;
+		const elapsed = detailsStarted === undefined ? undefined : Date.now() - detailsStarted;
+		const productsData: ProductsData = {
+			meta: {
+				status: details.status,
+				currentItemsDisplayed: products.length,
+				totalItems: details.data.returnValue?.totalRecords,
+				page: safePage,
+				pages: Math.ceil(totalRecords / pageSize),
+				maxItemsPagination: pageSize,
+				performanceTimings: elapsed === undefined ? undefined : { proxyToSource: elapsed }
+			},
+			products
+		};
 		if (productsData.meta.status < 400) await addSpecifications(productsById);
 		return productsData;
 	} catch (error) {
